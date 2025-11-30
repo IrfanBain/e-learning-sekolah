@@ -1,117 +1,96 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from '@/context/authContext';
-// import { useRouter } from "next/navigation";
+import { 
+  LayoutDashboard, 
+  Users, 
+  User, 
+  CalendarDays, 
+  School, 
+  BookOpen, 
+  FileText, 
+  ClipboardList, 
+  MessageSquare, 
+  Award, 
+  Megaphone, // Pastikan ini ada warnanya (ter-import)
+  LogOut, 
+  Settings,
+  UserCog,
+  Volume2 // Alternatif kalau Megaphone rusak
+} from 'lucide-react';
 
 const menuItems = [
   {
-    title: "MENU",
+    title: "MENU UTAMA",
     items: [
       {
-        icon: "/home.png",
+        icon: LayoutDashboard,
         label: "Beranda",
-        getHref: (role: string | null) => { 
-          if (role === 'admin') return '/admin';
-          if (role === 'teacher') return '/teacher'; 
-          if (role === 'student') return '/student';
-          return '/'; 
-      },
-        visible: ["admin", "teacher", "student",],
+        getHref: (role: string) => `/${role === 'admin' ? 'admin' : role === 'teacher' ? 'teacher' : role === 'student' ? 'student' : ''}`,
+        visible: ["admin", "teacher", "student"],
+        exactMatch: true, // <--- TAMBAHAN: Biar gak aktif pas buka menu lain
       },
       {
-        icon: "/teacher.png",
+        icon: Users,
         label: "Guru",
         href: "/list/teachers",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/student.png",
+        icon: User,
         label: "Siswa",
         href: "/list/students",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/parent.png",
-        label: "Jadwal",
-        href: "/list/schedules",
-        visible: ["admin"],
-      },
-      {
-        icon: "/class.png",
+        icon: School,
         label: "Kelas",
         href: "/list/classes",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/lesson.png",
+        icon: BookOpen,
         label: "Mata Pelajaran",
         href: "/list/subjects",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "/exam.png",
+        icon: FileText,
         label: "Ujian",
-        getHref: (role: string | null) => { 
-          if (role === 'admin') return '/admin/examPage';
-          if (role === 'teacher') return '/teacher/examsPage'; 
-          if (role === 'student') return '/student/examPage';
-          return '/'; 
-      },
-        visible: ["admin", "teacher", "student",],
+        getHref: (role: string) => `/${role}/examPage`, 
+        visible: ["admin", "teacher", "student"],
       },
       {
-        icon: "/assignment.png",
+        icon: ClipboardList,
         label: "Tugas PR",
-        getHref: (role: string | null) => { 
-          if (role === 'admin') return '/admin/homework';
-          if (role === 'teacher') return '/teacher/homework'; 
-          if (role === 'student') return '/student/homework';
-          return '/'; 
-      },
-        visible: ["admin", "teacher", "student",],
+        getHref: (role: string) => `/${role}/homework`,
+        visible: ["admin", "teacher", "student"],
       },
       {
-        icon: "/assignment.png",
+        icon: MessageSquare,
         label: "Diskusi",
         href: "/list/discussions",
-        visible: ["admin", "teacher", "student",],
+        visible: ["admin", "teacher", "student"],
       },
       {
-        icon: "/result.png",
+        icon: Award,
         label: "Nilai",
-         getHref: (role: string | null) => { 
-          if (role === 'admin') return '/admin/results';
-          if (role === 'teacher') return '/teacher/results'; 
-          if (role === 'student') return '/student/results';
-          return '/'; 
+        getHref: (role: string) => `/${role}/results`,
+        visible: ["admin", "teacher", "student"],
       },
-        visible: ["admin", "teacher", "student",],
-      },
-      // {
-      //   icon: "/attendance.png",
-      //   label: "Absensi",
-      //   href: "/list/absensi",
-      //   visible: ["admin", "teacher", "student",],
-      // },
       {
-        icon: "/calendar.png",
+        icon: CalendarDays,
         label: "Event",
         href: "/list/events",
-        visible: ["admin", "teacher", "student",],
+        visible: ["admin", "teacher", "student"],
       },
-      // {
-      //   icon: "/message.png",
-      //   label: "Pesan",
-      //   href: "/list/messages",
-      //   visible: ["admin", "teacher", "student",],
-      // },
       {
-        icon: "/announcement.png",
+        icon: Megaphone, // Kalau masih tidak muncul, ganti jadi "Volume2"
         label: "Pengumuman",
         href: "/list/announcements",
-        visible: ["admin", "teacher", "student",],
+        visible: ["admin", "teacher", "student"],
       },
     ],
   },
@@ -119,32 +98,23 @@ const menuItems = [
     title: "LAINNYA",
     items: [
       {
-        icon: "/profile.png",
+        icon: User,
         label: "Profil",
-        getHref: (role: string | null) => { 
-          if (role === 'teacher') return '/profile/guru'; 
-          if (role === 'student') return '/profile/siswa';
-          return '/'; 
+        getHref: (role: string) => `/profile/${role === 'teacher' ? 'guru' : 'siswa'}`,
+        visible: ["teacher", "student"],
       },
-        visible: [ "teacher", "student",],
-      },
-      // {
-      //   icon: "/setting.png",
-      //   label: "Pengaturan",
-      //   href: "/settings",
-      //   visible: ["admin", "teacher", "student",],
-      // },
       {
-        icon: "/profile.png",
+        icon: UserCog,
         label: "Pengguna",
-        href: "/users",
+        href: "/admin/users",
         visible: ["admin"],
       },
       {
-        icon: "/logout.png",
+        icon: LogOut,
         label: "Keluar",
         href: "/logout",
-        visible: ["admin", "teacher", "student",],
+        visible: ["admin", "teacher", "student"],
+        isLogout: true,
       },
     ],
   },
@@ -152,64 +122,83 @@ const menuItems = [
 
 const Menu = () => {
   const { user, loading, logout } = useAuth();
-  // const router = useRouter();
+  const pathname = usePathname();
+
   const handleLogout = async () => {
     try {
       await logout();
-      // router.push('/');
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
+
   if (loading) {
-     return <div>Loading menu...</div>; // Atau tampilkan skeleton
+     return (
+       <div className="mt-4 space-y-4 px-2">
+         {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-md animate-pulse"/>)}
+       </div>
+     );
   }
+
   const currentRole = user?.role;
+
   return (
-    <div className="mt-4 text-sm ">
-      {menuItems.map((i) => (
-        <div className="flex flex-col gap-2" key={i.title}>
-          <span className="hidden lg:block text-gray-400 font-light my-4">
-            {i.title}
+    <div className="mt-4 text-sm">
+      {menuItems.map((section) => (
+        <div className="flex flex-col gap-2" key={section.title}>
+          <span className="hidden lg:block text-gray-400 font-bold text-xs uppercase tracking-wider my-4 px-4">
+            {section.title}
           </span>
-          {i.items.map((item) => {
-            if (currentRole && item.visible.includes(currentRole)) {
-              if (item.label === "Keluar") {
-                return (
-                  <button // Ubah dari <Link> menjadi <a> atau <button>
-                    key={item.label}
-                    onClick={handleLogout} // Panggil handler saat di-klik
-                    className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
-                    style={{ cursor: "pointer" }} // Ubah kursor jadi pointer
-                  >
-                    <Image src={item.icon} alt="" width={20} height={20} />
-                    <span className="hidden lg:block">{item.label}</span>
-                  </button>
-                );
-              }
-              let finalHref = "/";
-              if (item.getHref) {
-                finalHref = item.getHref(currentRole); 
-              } else if (item.href) {
-                const basePath = currentRole === 'admin' ? '/admin' : currentRole === 'teacher' ? '/teacher' : currentRole === 'student' ? '/student' : '/';
-                if (item.href.startsWith('/list/') || item.href === '/profile' || item.href === '/settings') {
-                    finalHref = item.href; 
-                } else {
-                    finalHref = `${basePath}/${item.href.startsWith('/') ? item.href.substring(1) : item.href}`;
-                }
-              }
+          
+          {section.items.map((item) => {
+            if (!currentRole || !item.visible.includes(currentRole)) return null;
+
+            let finalHref = item.href || "/";
+            if (item.getHref) {
+              finalHref = item.getHref(currentRole);
+            }
+
+            // --- PERBAIKAN LOGIKA ACTIVE STATE ---
+            let isActive = false;
+            
+            if ((item as any).exactMatch) {
+              // Jika exactMatch: true, URL harus sama persis
+              isActive = pathname === finalHref;
+            } else {
+              // Jika tidak, pakai logika 'dimulai dengan' (biar sub-menu tetap aktif)
+              isActive = pathname === finalHref || (finalHref !== '/' && pathname.startsWith(finalHref));
+            }
+            // -------------------------------------
+
+            if ((item as any).isLogout) {
               return (
-                <Link
-                  href={finalHref}
+                <button
                   key={item.label}
-                  className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight"
+                  onClick={handleLogout}
+                  className="flex items-center justify-center lg:justify-start gap-3 text-red-500 py-3 md:px-4 rounded-lg hover:bg-red-50 transition-all duration-200 w-full"
                 >
-                  <Image src={item.icon} alt="" width={20} height={20} />
-                  <span className="hidden lg:block">{item.label}</span>
-                </Link>
+                  <item.icon size={20} />
+                  <span className="hidden lg:block font-medium">{item.label}</span>
+                </button>
               );
             }
-            return null;
+
+            return (
+              <Link
+                href={finalHref}
+                key={item.label}
+                className={`
+                  flex items-center justify-center lg:justify-start gap-3 py-3 md:px-4 rounded-lg transition-all duration-200
+                  ${isActive 
+                    ? "bg-lamaSky text-blue-600 shadow-sm font-semibold" 
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  }
+                `}
+              >
+                <item.icon size={20} className={`flex-shrink-0 ${isActive ? "text-blue-600" : "text-gray-400"}`} />
+                <span className="hidden lg:block truncate">{item.label}</span>
+              </Link>
+            );
           })}
         </div>
       ))}
