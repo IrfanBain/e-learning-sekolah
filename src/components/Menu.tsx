@@ -18,7 +18,8 @@ import {
   LogOut, 
   Settings,
   UserCog,
-  Volume2 // Alternatif kalau Megaphone rusak
+  Volume2, // Alternatif kalau Megaphone rusak
+  CalendarCheck
 } from 'lucide-react';
 
 const menuItems = [
@@ -30,7 +31,7 @@ const menuItems = [
         label: "Beranda",
         getHref: (role: string) => `/${role === 'admin' ? 'admin' : role === 'teacher' ? 'teacher' : role === 'student' ? 'student' : ''}`,
         visible: ["admin", "teacher", "student"],
-        exactMatch: true, // <--- TAMBAHAN: Biar gak aktif pas buka menu lain
+        exactMatch: true, 
       },
       {
         icon: Users,
@@ -55,6 +56,12 @@ const menuItems = [
         label: "Mata Pelajaran",
         href: "/list/subjects",
         visible: ["admin", "teacher"],
+      },
+      {
+        icon: CalendarCheck,
+        label: "Jadwal",
+        href: "/list/schedules",
+        visible: ["admin"],
       },
       {
         icon: FileText,
