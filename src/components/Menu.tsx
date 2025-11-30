@@ -63,11 +63,23 @@ const menuItems = [
         href: "/list/schedules",
         visible: ["admin"],
       },
+      // {
+      //   icon: FileText,
+      //   label: "Ujian",
+      //   getHref: (role: string) => `/${role}/examsPage`, 
+      //   visible: ["admin", "teacher", "student"],
+      // },
+
       {
         icon: FileText,
         label: "Ujian",
-        getHref: (role: string) => `/${role}/examPage`, 
-        visible: ["admin", "teacher", "student"],
+        getHref: (role: string | null) => { 
+          if (role === 'admin') return '/admin/examPage';
+          if (role === 'teacher') return '/teacher/examsPage'; 
+          if (role === 'student') return '/student/examPage';
+          return '/'; 
+      },
+        visible: ["admin", "teacher", "student",],
       },
       {
         icon: ClipboardList,
