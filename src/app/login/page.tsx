@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState } from 'react'; // <-- Import useState
 import { useRouter } from 'next/navigation'; // <-- Import useRouter
-import { FaGear, FaBookOpen, FaChalkboardUser, FaChartLine, FaUser, FaUserLock } from 'react-icons/fa6';
+import { FaGear, FaBookOpen, FaChalkboardUser, FaChartLine, FaUser, FaUserLock, FaEye, FaEyeSlash } from 'react-icons/fa6';
 
 // --- Import Firebase ---
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -29,6 +29,7 @@ const LoginPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [showPassword, setShowPassword] = useState(false);
   // --- Akhir State ---
 
   // --- Fungsi Helper Lookup Email ---
@@ -193,14 +194,21 @@ const getUserDataFromFirestore = async (uid: string): Promise<UserData | null> =
                  <div className='relative flex items-center'>
                   <FaUserLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     id="password"
                     placeholder="Password" // Ganti placeholder
                     value={password} // Hubungkan ke state
                     onChange={(e) => setPassword(e.target.value)} // Update state
                     required
-                    className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-md border-gray-300 border text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full pl-10 pr-10 py-2 bg-gray-100 rounded-md border-gray-300 border text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <button
+                    type="button" // Wajib type="button" biar gak submit form
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
                 </div>
                 {/* Remember Me & Forgot Password (Tidak berubah) */}
                 {/* <div className="flex items-center justify-between pt-1">
