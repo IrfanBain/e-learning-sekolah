@@ -21,10 +21,16 @@ import {
     AlertTriangle, 
     Download,
     User,
-    Clock
+    Clock,
+    FileSpreadsheet, 
+    FileText
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 
 
 const TOLERANSI_JAM = 24;
@@ -162,6 +168,67 @@ const HomeworkSubmissionsPage = () => {
     }, [user, authLoading, fetchSubmissionsData]);
 
 
+    // 1. FUNGSI EXPORT EXCEL
+    const handleExportExcel = () => {
+        if (mergedData.length === 0) return;
+
+        const excelData = mergedData.map((data) => ({
+            "Nama Siswa": data.student.nama_lengkap,
+            "Kelas": data.student.kelas,
+            "Status": data.submission ? data.submission.status_pengumpulan : "Belum Mengumpulkan",
+            "Tanggal Kumpul": data.submission 
+                ? data.submission.tanggal_pengumpulan.toDate().toLocaleString('id-ID') 
+                : "-",
+            "Nilai": data.submission?.nilai_tugas ?? "-"
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Nilai");
+
+        const fileName = `Rekap_${homework?.judul || 'PR'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+    };
+
+    // --- FUNGSI EXPORT PDF (PERBAIKAN) ---
+    const handleExportPDF = () => {
+        if (mergedData.length === 0) return;
+
+        const doc = new jsPDF(); // Tidak perlu "as jsPDFWithAutoTable" lagi
+        
+        // Header PDF
+        doc.setFontSize(16);
+        doc.text("Rekap Pengumpulan PR", 14, 15);
+        doc.setFontSize(11);
+        doc.text(`Judul: ${homework?.judul || '-'}`, 14, 22);
+        doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`, 14, 28);
+
+        // Siapkan Data Tabel
+        const tableBody = mergedData.map((data) => [
+            data.student.nama_lengkap,
+            data.student.kelas,
+            data.submission ? data.submission.status_pengumpulan : "Belum Mengumpulkan",
+            data.submission 
+                ? data.submission.tanggal_pengumpulan.toDate().toLocaleString('id-ID', {
+                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                  }) 
+                : "-",
+            data.submission?.nilai_tugas ?? "-"
+        ]);
+
+        // Generate Tabel (Panggil fungsi autoTable secara langsung)
+        autoTable(doc, {
+            startY: 35,
+            head: [['Nama Siswa', 'Kelas', 'Status', 'Tanggal Kumpul', 'Nilai']],
+            body: tableBody,
+            headStyles: { fillColor: [66, 133, 244] }, 
+            styles: { fontSize: 10 },
+        });
+
+        const fileName = `Rekap_${homework?.judul || 'PR'}.pdf`;
+        doc.save(fileName);
+    };
+
     if (loading || authLoading) {
         return (
             <div className="flex justify-center items-center h-[80vh]">
@@ -198,10 +265,34 @@ const HomeworkSubmissionsPage = () => {
             </button>
 
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <h1 className="text-3xl font-bold text-gray-800">
-                    Rekap Pengumpulan PR
-                </h1>
-                <p className="text-lg text-gray-600 mt-1">{homework?.judul}</p>
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-6">
+        <div>
+            <h1 className="text-3xl font-bold text-gray-800">
+                Rekap Pengumpulan PR
+            </h1>
+            <p className="text-lg text-gray-600 mt-1">{homework?.judul}</p>
+        </div>
+
+        {/* Tombol Export (Hanya muncul jika ada data) */}
+        {mergedData.length > 0 && (
+            <div className="flex gap-2 mt-4 md:mt-0">
+                <button
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow-sm text-sm font-medium"
+                >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Export Excel
+                </button>
+                <button
+                    onClick={handleExportPDF}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow-sm text-sm font-medium"
+                >
+                    <FileText className="w-4 h-4" />
+                    Export PDF
+                </button>
+            </div>
+        )}
+    </div>
 
                 {mergedData.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-60 text-gray-500 border-t mt-4 pt-4">

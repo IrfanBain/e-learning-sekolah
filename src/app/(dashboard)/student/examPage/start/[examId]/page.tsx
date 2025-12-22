@@ -173,16 +173,19 @@ const StudentExamStartPage = () => {
     const [currentSubmissionId, setCurrentSubmissionId] = useState<string | null>(null); // ID dokumen di student's_answer
     const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
+    const [violationCount, setViolationCount] = useState(0);
+    const [penaltyEndTime, setPenaltyEndTime] = useState<Date | null>(null); // Kapan hukuman berakhir
+    const [penaltySecondsLeft, setPenaltySecondsLeft] = useState(0); // Untuk display countdown hukuman
+
     useEffect(() => {
-// Jangan lakukan apa-apa jika ujian belum dimulai (submissionId belum ada)
-// atau jika sedang dalam proses submit
+
 if (!currentSubmissionId || pageStatus === 'submitting') {
   return;
 }
 
 // Atur timer 'debounce'. Kita tunggu 2 detik setelah siswa selesai mengetik.
 const saveTimer = setTimeout(async () => {
-  console.log("Menyimpan progress jawaban...");
+//   console.log("Menyimpan progress jawaban...");
   try {
 const submissionRef = doc(db, "students_answers", currentSubmissionId);
 await updateDoc(submissionRef, {
@@ -204,6 +207,96 @@ return () => {
 };
 
   }, [answers, currentSubmissionId, pageStatus]); // Dependencies: jalankan ini jika 'answers' berubah
+
+  // --- RESTORE HUKUMAN DARI LOCAL STORAGE (Supaya Anti-Refresh) ---
+    useEffect(() => {
+        // 1. Ambil data dari Local Storage berdasarkan ID Ujian
+        const storedViolation = localStorage.getItem(`violation_${examId}`);
+        const storedPenaltyEnd = localStorage.getItem(`penalty_${examId}`);
+
+        // 2. Restore jumlah pelanggaran
+        if (storedViolation) {
+            setViolationCount(parseInt(storedViolation));
+        }
+
+        // 3. Restore waktu hukuman
+        if (storedPenaltyEnd) {
+            const endTime = new Date(storedPenaltyEnd);
+            const now = new Date();
+
+            // Cek apakah waktu hukuman masih berlaku
+            if (endTime > now) {
+                setPenaltyEndTime(endTime); // Hukuman lanjut!
+            } else {
+                // Jika waktu hukuman sudah lewat saat siswa "kabur",
+                // hapus data hukuman agar bersih.
+                localStorage.removeItem(`penalty_${examId}`);
+                setPenaltyEndTime(null);
+            }
+        }
+    }, [examId]);
+
+  // --- 1. DETEKSI PINDAH TAB (VISIBILITY API) ---
+    useEffect(() => {
+        // Hanya jalankan saat ujian sedang berlangsung (inProgress)
+        if (pageStatus !== 'inProgress') return;
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // Jika sedang dihukum, abaikan
+                if (penaltyEndTime !== null) return; 
+
+                if (remainingSeconds !== null && remainingSeconds <= 600) {
+                    return; 
+                }
+                
+                const newCount = violationCount + 1;
+                setViolationCount(newCount);
+                
+                // --- SIMPAN KE STORAGE ---
+                localStorage.setItem(`violation_${examId}`, newCount.toString());
+
+                // Hitung durasi (Kelipatan 2 menit)
+                const penaltyDurationMinutes = 1; 
+                const penaltyMs = penaltyDurationMinutes * 60 * 1000;
+                
+                const endTime = new Date(new Date().getTime() + penaltyMs);
+                setPenaltyEndTime(endTime);
+                
+                // --- SIMPAN WAKTU SELESAI KE STORAGE ---
+                localStorage.setItem(`penalty_${examId}`, endTime.toISOString());
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    }, [pageStatus, violationCount, penaltyEndTime, examId, remainingSeconds]); // Dependensi violationCount agar update terus
+
+
+    // --- 2. TIMER HITUNG MUNDUR HUKUMAN ---
+    useEffect(() => {
+        if (!penaltyEndTime) return;
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            const diff = Math.ceil((penaltyEndTime.getTime() - now.getTime()) / 1000);
+
+            if (diff <= 0) {
+                // Hukuman selesai
+                setPenaltyEndTime(null);
+                setPenaltySecondsLeft(0);
+                
+                // --- HAPUS DARI STORAGE ---
+                localStorage.removeItem(`penalty_${examId}`);
+                
+                toast.success("Masa hukuman berakhir. Silakan lanjutkan mengerjakan dengan jujur.");
+            } else {
+                setPenaltySecondsLeft(diff);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [penaltyEndTime, setPenaltySecondsLeft, examId]);
 
 const isAllAnswered = useMemo(() => {
   // Jika jumlah soal dan jawaban tidak sinkron, anggap belum
@@ -646,6 +739,10 @@ setAnswers(newAnswers);
                                 placeholder="Tuliskan jawaban esai Anda di sini..."
                                 value={jawabanSiswa}
                                 onChange={(e) => handleAnswerChange(currentQuestionIndex, e.target.value)}
+                                onPaste={(e) => {
+                                            e.preventDefault();
+                                            toast.error("Fitur Paste dinonaktifkan demi integritas ujian.");
+                                        }}
                             />
                         </div>
                     )}
@@ -688,6 +785,10 @@ className="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-
 placeholder={`Jawaban ${index + 1}...`}
 value={jawaban}
 onChange={(e) => handleUraianAnswerChange(currentQuestionIndex, index, e.target.value)}
+onPaste={(e) => {
+                                            e.preventDefault();
+                                            toast.error("Fitur Paste dinonaktifkan.");
+                                        }}
 />
 </div>
 ))}
@@ -710,6 +811,35 @@ onChange={(e) => handleUraianAnswerChange(currentQuestionIndex, index, e.target.
                         <span className="font-medium">Tandai (Ragu-ragu)</span>
                     </label>
                 </div>
+                {/* --- LAYAR HUKUMAN (PENALTY OVERLAY) --- */}
+            {penaltyEndTime && penaltySecondsLeft > 0 && (
+                <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-sm p-4 text-center">
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-lg w-full border-4 border-red-500">
+                        <AlertTriangle className="w-20 h-20 text-red-600 mx-auto mb-4" />
+                        
+                        <h2 className="text-3xl font-bold text-red-700 mb-2">PELANGGARAN TERDETEKSI!</h2>
+                        <p className="text-gray-700 text-lg font-medium mb-6">
+                            Anda terdeteksi meninggalkan halaman ujian atau membuka tab lain.
+                            <br/>
+                            Ini adalah pelanggaran ke-<span className="font-bold text-red-600 text-xl">{violationCount}</span>.
+                        </p>
+
+                        <div className="bg-red-50 p-6 rounded-xl border border-red-200 mb-6">
+                            <p className="text-sm text-red-600 uppercase font-bold tracking-wide mb-2">Ujian Dibekukan Sementara Selama</p>
+                            <div className="text-5xl font-mono font-black text-red-600">
+                                {Math.floor(penaltySecondsLeft / 60)}:{(penaltySecondsLeft % 60).toString().padStart(2, '0')}
+                            </div>
+                            <p className="text-xs text-red-500 mt-2 italic">Waktu ujian Anda tetap berjalan!</p>
+                        </div>
+
+                        <p className="text-sm text-gray-500">
+                            Harap tunggu hingga waktu hukuman habis untuk melanjutkan ujian.
+                            <br/>
+                            Jangan mencoba pindah tab lagi atau durasi hukuman akan bertambah.
+                        </p>
+                    </div>
+                </div>
+            )}
             </div>
         );
     };

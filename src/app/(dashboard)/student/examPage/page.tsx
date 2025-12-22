@@ -118,35 +118,49 @@ const StudentExamPage = () => {
 
                 let mergedData: MergedExamData = { ...examData };
 
-    if (submission && submission.status === 'dikerjakan') {
-          // KASUS 1: Benar-benar sudah selesai
-          mergedData.submission = submission;
-          mergedData.customStatus = "Selesai";
-        
-        } else if (submission && submission.status === 'sedang dikerjakan') {
-          // KASUS 2: Ditinggal (Back/Refresh). Anggap sebagai "Tersedia"
-          // agar bisa dilanjutkan (logic resume di halaman start akan bekerja)
-          mergedData.submission = submission; // Bawa data submission
-          
-          if (examData.status === "Dipublikasi" && now < deadline) {
-            mergedData.customStatus = "Tersedia";
-          } else {
-            // Ditinggal DAN deadline-nya keburu habis
-            mergedData.customStatus = "Terlewat"; 
-          }
+  
+                const isGraded = 
+                    (submission?.nilai_akhir !== undefined && submission?.nilai_akhir !== null) || 
+                    (submission?.nilai_esai !== undefined && submission?.nilai_esai !== null);
 
-        } else {
-          // KASUS 3: Belum pernah disentuh SAMA SEKALI
-          mergedData.submission = undefined; // Pastikan tidak ada data submission
-          
-          if (examData.status === "Dipublikasi" && now < deadline) {
-            mergedData.customStatus = "Tersedia";
-          } else if (examData.status === "Dipublikasi" && now >= deadline) {
-            mergedData.customStatus = "Terlewat";
-          } else if (examData.status === "Ditutup") {
-            mergedData.customStatus = "Ditutup";
-          }
-        }
+                // Cek apakah submission sudah di-submit final oleh siswa
+                const isSubmitted = submission?.status === 'dikerjakan';
+
+                if (submission) {
+                    mergedData.submission = submission;
+
+                    // KASUS A: Sudah dinilai -> Selesai
+                    if (isGraded) {
+                        mergedData.customStatus = "Selesai";
+                    }
+                    // KASUS B (STRICT): Sudah Submit -> Selesai (MUTLAK)
+                    // Kita TIDAK mengecek deadline lagi di sini.
+                    // Sekali status 'dikerjakan', siswa tidak bisa masuk lagi.
+                    else if (isSubmitted) {
+                        mergedData.customStatus = "Selesai";
+                    }
+                    // KASUS C: Sedang Mengerjakan (Resume / Belum Submit Final)
+                    // Hanya di sini kita cek deadline, karena siswa belum klik 'Selesai'
+                    else { 
+                         if (examData.status === "Dipublikasi" && now < deadline) {
+                            mergedData.customStatus = "Tersedia"; // Tombol: Lanjutkan
+                        } else {
+                            mergedData.customStatus = "Terlewat"; // Tombol: Terlewat
+                        }
+                    }
+
+                } else {
+                    // KASUS E: Belum pernah disentuh (Sama seperti sebelumnya)
+                    mergedData.submission = undefined;
+                    
+                    if (examData.status === "Dipublikasi" && now < deadline) {
+                        mergedData.customStatus = "Tersedia";
+                    } else if (examData.status === "Dipublikasi" && now >= deadline) {
+                        mergedData.customStatus = "Terlewat";
+                    } else if (examData.status === "Ditutup") {
+                        mergedData.customStatus = "Ditutup";
+                    }
+                }
 
                 const [mapelNama, guruNama] = await Promise.all([
                     getRefName(examData.mapel_ref, 'nama_mapel'),

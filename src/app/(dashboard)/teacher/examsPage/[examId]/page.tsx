@@ -40,6 +40,7 @@ import {
     Clock, // <-- BARU: Tambahkan ikon Jam
     Edit2, // <-- BARU: Tambahkan ikon Edit
     Save,  // <-- BARU: Tambahkan ikon Simpan
+    RotateCcw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -556,7 +557,7 @@ const batch = writeBatch(db);
                                 toast.dismiss(t.id);
                                 
                                 setStatusLoading(true);
-                                const loadingToastId = toast.loading(`Sedang ${actionText} latihan...`);
+                                const loadingToastId = toast.loading(`Sedang ${actionText} Ujian...`);
                                 try {
                                     await updateDoc(examDocRef, {
                                         status: newStatus
@@ -650,7 +651,7 @@ const batch = writeBatch(db);
         return (
             <div className="flex justify-center items-center h-[80vh]">
                 <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
-                <span className="ml-4 text-gray-600 text-lg">Memuat data latihan...</span>
+                <span className="ml-4 text-gray-600 text-lg">Memuat data Ujian...</span>
             </div>
         );
     }
@@ -1038,6 +1039,9 @@ const StatusAksiPanel = ({
     deadlineLoading: boolean
 }) => {
     
+    const [showRevertUI, setShowRevertUI] = useState(false);
+    const [revertInput, setRevertInput] = useState("");
+    
     let statusUI: React.ReactNode;
     let buttonUI: React.ReactNode;
 
@@ -1063,7 +1067,7 @@ const StatusAksiPanel = ({
                     className="flex items-center gap-2 py-2 px-4 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 disabled:opacity-50"
                 >
                     {statusLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Eye className="w-5 h-5" />}
-                    Publikasikan Latihan
+                    Publikasikan Ujian
                 </button>
             );
             break;
@@ -1094,9 +1098,71 @@ const StatusAksiPanel = ({
                     <span className="font-semibold">Status: Ditutup</span>
                 </div>
             );
-            buttonUI = (
-                <p className="text-sm text-red-700">Ujian ini sudah ditutup dan tidak bisa diubah lagi.</p>
-            );
+            
+            // --- LOGIKA BARU: Tombol & Form Konfirmasi ---
+            if (showRevertUI) {
+                // Tampilan Form Konfirmasi
+                buttonUI = (
+                    <div className="flex flex-col gap-3 bg-red-50 p-4 rounded-lg border border-red-200 animate-in fade-in zoom-in duration-200 max-w-sm">
+                        <div className="flex items-start gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-bold text-red-800">Tindakan Darurat</p>
+                                <p className="text-xs text-red-700 mt-1 leading-relaxed">
+                                    Mengembalikan ke <strong>Draft</strong> memungkinkan Anda mengedit soal/deadline, tapi status Ditutup akan hilang.
+                                    <br/>Ketik <strong>KONFIRMASI</strong> untuk melanjutkan.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <input 
+                            type="text"
+                            value={revertInput}
+                            onChange={(e) => setRevertInput(e.target.value)}
+                            className="text-sm border border-red-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 w-full bg-white"
+                            placeholder="Ketik: KONFIRMASI"
+                        />
+                        
+                        <div className="flex gap-2 justify-end pt-1">
+                             <button 
+                                onClick={() => { setShowRevertUI(false); setRevertInput(""); }}
+                                className="text-xs font-medium text-gray-600 hover:text-gray-800 px-3 py-2"
+                             >
+                                Batal
+                             </button>
+                             <button 
+                                onClick={() => {
+                                    if(revertInput === "KONFIRMASI") {
+                                        onChangeStatus('Draft'); // Panggil fungsi ubah status ke Draft
+                                        setShowRevertUI(false);
+                                        setRevertInput("");
+                                    } else {
+                                        toast.error("Kata kunci konfirmasi salah.");
+                                    }
+                                }}
+                                disabled={revertInput !== "KONFIRMASI"}
+                                className="text-xs font-bold bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                             >
+                                Ya, Kembalikan ke Draft
+                             </button>
+                        </div>
+                    </div>
+                );
+            } else {
+                // Tampilan Tombol Biasa
+                buttonUI = (
+                    <div className="flex flex-col items-end gap-1.5">
+                        <p className="text-xs text-gray-500 italic">Ada kesalahan fatal (salah tanggal/soal)?</p>
+                        <button
+                            onClick={() => setShowRevertUI(true)}
+                            className="flex items-center gap-2 py-2 px-4 bg-white border border-red-200 text-red-600 font-medium text-sm rounded-lg hover:bg-red-50 transition-colors shadow-sm"
+                        >
+                            <RotateCcw className="w-4 h-4" />
+                            Buka Kembali (Revisi)
+                        </button>
+                    </div>
+                );
+            }
             break;
     }
 

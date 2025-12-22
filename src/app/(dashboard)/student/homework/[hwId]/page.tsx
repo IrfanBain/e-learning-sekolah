@@ -195,6 +195,35 @@ const StudentHomeworkDetailPage = () => {
         setExistingFile(null);
     };
 
+    // --- VALIDASI FILE (Letakkan di atas handleSubmit) ---
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files ? e.target.files[0] : null;
+        if (!file) return;
+
+        // 1. Cek Ukuran (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error("Ukuran file terlalu besar (Maksimal 10MB)");
+            return;
+        }
+
+        // 2. Cek Tipe File (Hanya Foto, PDF, Word)
+        const allowedTypes = [
+            'image/jpeg', 'image/png', 'image/jpg', // Foto
+            'application/pdf',                      // PDF
+            'application/msword',                   // Word (.doc)
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // Word (.docx)
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            toast.error("Format tidak didukung. Harap upload Foto, PDF, atau Word.");
+            // Reset input value agar user bisa pilih ulang
+            e.target.value = ''; 
+            return;
+        }
+
+        setFileToUpload(file);
+    };
+
     // --- HANDLER SUBMIT / UPDATE ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -449,7 +478,8 @@ const StudentHomeworkDetailPage = () => {
                                             <input 
                                                 type="file" 
                                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                onChange={e => setFileToUpload(e.target.files ? e.target.files[0] : null)}
+                                                accept=".jpg, .jpeg, .png, .pdf, .doc, .docx"
+                                                onChange={handleFileChange}
                                             />
                                             <UploadCloud className="w-10 h-10 mx-auto text-gray-400 mb-2" />
                                             <p className="text-gray-600 font-medium">Klik untuk pilih file</p>
