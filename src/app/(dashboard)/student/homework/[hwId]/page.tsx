@@ -13,7 +13,7 @@ import {
     doc,
     getDoc,
     addDoc,
-    updateDoc, // <-- TAMBAHAN: Untuk update submission
+    updateDoc, 
     serverTimestamp,
     Timestamp,
     DocumentReference,
@@ -32,11 +32,10 @@ import {
     XCircle,
     Clock,
     PenTool,
-    Edit2 // <-- TAMBAHAN: Ikon Edit
+    Edit2 
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// --- DEFINISI TIPE ---
 interface HomeworkData {
     id: string;
     judul: string;
@@ -57,7 +56,7 @@ interface UploadedFileInfo {
     namaFile: string; 
 }
 interface SubmissionData {
-    id: string; // <-- Pastikan ID ada
+    id: string; 
     homework_ref: DocumentReference;
     student_ref: DocumentReference;
     status_pengumpulan: "Terkumpul" | "Terlambat" | "Dinilai Manual";
@@ -74,7 +73,6 @@ interface StudentData {
     kelas_ref: DocumentReference;
 }
 
-// Helper
 const getRefName = async (ref: DocumentReference, fieldName: string) => {
     try {
         const docSnap = await getDoc(ref);
@@ -85,67 +83,49 @@ const getRefName = async (ref: DocumentReference, fieldName: string) => {
     return "N/A";
 };
 
-// --- KOMPONEN UTAMA ---
 const StudentHomeworkDetailPage = () => {
     const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
     const params = useParams();
     const router = useRouter();
     const hwId = params.hwId as string;
-
-    // State Data
     const [homework, setHomework] = useState<HomeworkData | null>(null);
     const [submission, setSubmission] = useState<SubmissionData | null>(null);
     const [student, setStudent] = useState<StudentData | null>(null);
-    
-    // State UI
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isEditing, setIsEditing] = useState(false); // <-- BARU: Mode Edit
-
-    // --- KONFIGURASI TOLERANSI ---
+    const [isEditing, setIsEditing] = useState(false);
     const TOLERANSI_JAM = 24;
-
-    // State Form
     const [textJawaban, setTextJawaban] = useState<string>(""); 
     const [fileToUpload, setFileToUpload] = useState<File | null>(null);
     const [komentar, setKomentar] = useState<string>("");
     const [isUploading, setIsUploading] = useState(false);
-    // State File Lama (untuk ditampilkan saat edit)
     const [existingFile, setExistingFile] = useState<UploadedFileInfo | null>(null); 
-
-    // --- PENGAMBILAN DATA ---
     const fetchHomeworkDetail = useCallback(async (userUid: string) => {
         if (!hwId || !userUid) return;
         setLoading(true);
         setError(null);
 
         try {
-            // 1. Ambil data PR
             const hwRef = doc(db, "homework", hwId);
             const hwSnap = await getDoc(hwRef);
             if (!hwSnap.exists()) throw new Error("Tugas tidak ditemukan.");
             const hwData = { ...hwSnap.data(), id: hwSnap.id } as HomeworkData;
-            
-            // 2. Ambil data siswa
             const studentRef = doc(db, "students", userUid);
             const studentSnap = await getDoc(studentRef);
             if (!studentSnap.exists()) throw new Error("Data siswa tidak ditemukan.");
             const studentData = { ...studentSnap.data(), id: studentSnap.id } as StudentData;
             setStudent(studentData);
             
-            // 3. Cek kelas (Opsional)
             if (hwData.kelas_ref.id !== studentData.kelas_ref.id) {
                 throw new Error("Anda tidak terdaftar di kelas untuk tugas ini.");
             }
 
-            // 4. Ambil info tambahan
             const [mapelNama, guruNama] = await Promise.all([
                 getRefName(hwData.mapel_ref, 'nama_mapel'),
                 getRefName(hwData.guru_ref, 'nama_lengkap')
             ]);
             setHomework({ ...hwData, mapelNama, guruNama });
 
-            // 5. Cek submission
             const submissionQuery = query(
                 collection(db, "homework_submissions"),
                 where("homework_ref", "==", hwRef),
@@ -177,14 +157,13 @@ const StudentHomeworkDetailPage = () => {
         }
     }, [user, authLoading, fetchHomeworkDetail]);
 
-    // --- HANDLER EDIT ---
     const handleStartEdit = () => {
         if (!submission) return;
         setIsEditing(true);
         setTextJawaban(submission.text_jawaban || "");
         setKomentar(submission.komentar_siswa || "");
         setExistingFile(submission.file_jawaban || null);
-        setFileToUpload(null); // Reset file baru
+        setFileToUpload(null); 
     };
 
     const handleCancelEdit = () => {
@@ -195,28 +174,24 @@ const StudentHomeworkDetailPage = () => {
         setExistingFile(null);
     };
 
-    // --- VALIDASI FILE (Letakkan di atas handleSubmit) ---
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files ? e.target.files[0] : null;
         if (!file) return;
 
-        // 1. Cek Ukuran (10MB)
         if (file.size > 10 * 1024 * 1024) {
             toast.error("Ukuran file terlalu besar (Maksimal 10MB)");
             return;
         }
 
-        // 2. Cek Tipe File (Hanya Foto, PDF, Word)
         const allowedTypes = [
-            'image/jpeg', 'image/png', 'image/jpg', // Foto
-            'application/pdf',                      // PDF
-            'application/msword',                   // Word (.doc)
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // Word (.docx)
+            'image/jpeg', 'image/png', 'image/jpg',
+            'application/pdf',                      
+            'application/msword',                   
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
         ];
 
         if (!allowedTypes.includes(file.type)) {
             toast.error("Format tidak didukung. Harap upload Foto, PDF, atau Word.");
-            // Reset input value agar user bisa pilih ulang
             e.target.value = ''; 
             return;
         }
@@ -224,11 +199,9 @@ const StudentHomeworkDetailPage = () => {
         setFileToUpload(file);
     };
 
-    // --- HANDLER SUBMIT / UPDATE ---
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        // Validasi: Minimal isi teks ATAU upload file (baru atau lama)
         const hasText = textJawaban.trim().length > 0;
         const hasNewFile = fileToUpload !== null;
         const hasOldFile = existingFile !== null;
@@ -244,9 +217,7 @@ const StudentHomeworkDetailPage = () => {
         const loadingToastId = toast.loading(isEditing ? "Menyimpan perubahan..." : "Mengirim jawaban...");
 
         try {
-            let fileData = existingFile; // Default pakai file lama (jika edit)
-
-            // A. Upload File Baru (Jika Ada)
+            let fileData = existingFile; 
             if (fileToUpload) {
                 toast.loading("Mengupload file...", { id: loadingToastId });
                 
@@ -279,12 +250,9 @@ const StudentHomeworkDetailPage = () => {
                     namaFile: namaFile
                 };
             }
-            // Jika user menghapus file lama di mode edit
             else if (isEditing && !existingFile) {
                 fileData = null;
             }
-
-            // B. Data Payload
             const deadline = homework.tanggal_selesai.toDate();
             const statusPengumpulan = new Date() > deadline ? "Terlambat" : "Terkumpul";
 
@@ -293,32 +261,26 @@ const StudentHomeworkDetailPage = () => {
                 student_ref: doc(db, "students", user.uid),
                 kelas_ref: student.kelas_ref,
                 status_pengumpulan: statusPengumpulan,
-                tanggal_pengumpulan: serverTimestamp(), // Update waktu pengumpulan
-                
+                tanggal_pengumpulan: serverTimestamp(), 
                 text_jawaban: textJawaban, 
                 file_jawaban: fileData, 
-
                 komentar_siswa: komentar,
-                // Jangan reset nilai/feedback jika edit, biarkan apa adanya (atau reset jika kebijakan sekolah mengharuskan)
-                // Di sini kita asumsikan edit HANYA BOLEH jika nilai belum ada, jadi aman.
                 nilai_tugas: null, 
                 feedback_guru: null, 
                 tanggal_dinilai: null
             };
             
             if (isEditing && submission?.id) {
-                // UPDATE Submission
                 const subRef = doc(db, "homework_submissions", submission.id);
                 await updateDoc(subRef, submissionPayload);
                 toast.success("Jawaban diperbarui!", { id: loadingToastId });
             } else {
-                // CREATE Baru
                 await addDoc(collection(db, "homework_submissions"), submissionPayload);
                 toast.success("Tugas berhasil dikumpulkan!", { id: loadingToastId });
             }
 
             setIsEditing(false);
-            fetchHomeworkDetail(user.uid); // Refresh
+            fetchHomeworkDetail(user.uid); 
 
         } catch (err: any) {
             console.error("Error submitting:", err);
@@ -328,23 +290,14 @@ const StudentHomeworkDetailPage = () => {
         }
     };
 
-
-    // --- RENDER ---
     if (loading || authLoading) return <div className="flex justify-center items-center h-[80vh]"><Loader2 className="w-8 h-8 animate-spin text-blue-600"/></div>;
     if (error) return <div className="p-6 text-center text-red-600">{error}</div>;
     if (!homework) return <div className="p-6 text-center text-gray-500">Data tidak ditemukan.</div>;
-
-  // --- LOGIKA WAKTU & TOLERANSI ---
     const now = new Date();
     const deadlineDate = homework.tanggal_selesai.toDate();
-    
-    // Hitung waktu toleransi (Deadline + 24 Jam)
     const lockDate = new Date(deadlineDate.getTime() + (TOLERANSI_JAM * 60 * 60 * 1000));
-
-    const isPastDeadline = now > deadlineDate; // Sudah lewat deadline (Status: Terlambat)
-    const isLocked = now > lockDate;           // Sudah lewat toleransi (Status: Tidak bisa kirim)
-
-    // Cek edit: Belum dinilai DAN Belum lewat toleransi (bukan deadline biasa)
+    const isPastDeadline = now > deadlineDate; 
+    const isLocked = now > lockDate;          
     const canEdit = submission && submission.nilai_tugas === null && !isLocked;
 
     return (
@@ -355,8 +308,6 @@ const StudentHomeworkDetailPage = () => {
                 <ArrowLeft className="w-5 h-5" />
                 Kembali ke Daftar PR
             </button>
-
-            {/* INFO TUGAS */}
              <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">{homework.judul}</h1>
                 <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2 pb-4 border-b">
@@ -385,15 +336,6 @@ const StudentHomeworkDetailPage = () => {
                 </div>
             </div>
 
-            {/* --- AREA FORM / HASIL --- */}
-            
-            {/* --- LOGIKA TAMPILAN UTAMA --- */}
-            
-            {/* KONDISI 1: Tampilkan FORM jika: 
-                (Belum ada submission ATAU Sedang Edit) 
-                DAN (Status PR bukan Ditutup)
-                DAN (Belum Terkunci secara waktu ATAU Sedang Edit) 
-            */}
             {(!submission || isEditing) && homework.status !== 'Ditutup' && (!isLocked || isEditing) ? (
                 
                 <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
@@ -409,7 +351,6 @@ const StudentHomeworkDetailPage = () => {
                         )}
                     </div>
 
-                    {/* Peringatan Soft Deadline (Masa Toleransi) */}
                     {isPastDeadline && !isEditing && (
                         <div className="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg flex items-start gap-3">
                             <Clock className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -427,10 +368,6 @@ const StudentHomeworkDetailPage = () => {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* ... (ISI FORM TETAP SAMA SEPERTI SEBELUMNYA, TIDAK PERLU DIUBAH) ... */}
-                        {/* ... Copas saja bagian input Textarea, Upload File, Komentar ... */}
-                        
-                        {/* 1. Input Jawaban Teks */}
                         <div>
                             <label className="block font-medium text-gray-700 mb-2">Jawaban Teks (Ketik Langsung)</label>
                             <textarea 
@@ -440,21 +377,16 @@ const StudentHomeworkDetailPage = () => {
                                 onChange={e => setTextJawaban(e.target.value)}
                             ></textarea>
                         </div>
-                        
-                        {/* ... (Lanjutkan dengan input file dan tombol submit seperti kode sebelumnya) ... */}
-                        {/* Copy paste bagian Upload File dan Tombol Submit di sini */}
                          <div className="relative py-2">
                                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-gray-300"></span></div>
                                 <div className="relative flex justify-center"><span className="bg-white px-3 text-sm text-gray-500">DAN / ATAU</span></div>
                             </div>
 
-                            {/* 2. Input File Upload */}
                             <div>
                                 <label className="block font-medium text-gray-700 mb-2">
                                     Upload File (Foto / PDF / Word) - <span className="text-gray-500 font-normal">Opsional</span>
                                 </label>
                                 
-                                {/* Jika ada file lama di mode edit */}
                                 {existingFile && !fileToUpload && (
                                     <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg mb-3">
                                         <div className="flex items-center gap-2 text-blue-700">
@@ -463,7 +395,7 @@ const StudentHomeworkDetailPage = () => {
                                         </div>
                                         <button 
                                             type="button" 
-                                            onClick={() => setExistingFile(null)} // Hapus file lama
+                                            onClick={() => setExistingFile(null)} 
                                             className="text-xs text-red-500 hover:underline flex items-center gap-1"
                                         >
                                             <X className="w-3 h-3" /> Hapus file ini
@@ -505,8 +437,6 @@ const StudentHomeworkDetailPage = () => {
                                     )}
                                 </div>
                             </div>
-
-                            {/* 3. Catatan Tambahan */}
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Catatan Tambahan (Opsional)</label>
                                 <input 
@@ -518,7 +448,6 @@ const StudentHomeworkDetailPage = () => {
                                 />
                             </div>
 
-                            {/* Tombol Submit */}
                             <div className="pt-4">
                                 <button
                                     type="submit"
@@ -538,7 +467,6 @@ const StudentHomeworkDetailPage = () => {
 
             ) : (
                 
-                // --- AREA PESAN ERROR / TERKUNCI (Jika form tidak muncul dan belum ada submission) ---
                 (!submission && (homework.status === 'Ditutup' || isLocked)) ? (
                      <div className="bg-white p-8 rounded-xl shadow-md border border-red-100 text-center">
                         <div className="inline-flex p-3 bg-red-50 rounded-full mb-4">
@@ -555,14 +483,9 @@ const StudentHomeworkDetailPage = () => {
                     </div>
 
                 ) : (
-                    
-                    // --- AREA HASIL (Submission Ada) ---
-                    // Ini akan muncul JIKA siswa sudah submit SENDIRI, 
-                    // ATAU jika guru memberi nilai MANUAL (meskipun siswa telat/tidak kumpul)
                     <div className="bg-white p-6 rounded-xl shadow-md border border-green-100">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-4 border-b">
                             <div className="flex items-center gap-3">
-                                {/* Ikon Status */}
                                 {submission?.status_pengumpulan === 'Dinilai Manual' ? (
                                      <User className="w-8 h-8 text-gray-600" />
                                 ) : (
@@ -581,8 +504,6 @@ const StudentHomeworkDetailPage = () => {
                                     </p>
                                 </div>
                             </div>
-
-                            {/* TOMBOL EDIT (Hanya jika belum dinilai & belum lewat Masa Toleransi) */}
                             {canEdit && (
                                 <button 
                                     onClick={handleStartEdit}
@@ -594,8 +515,6 @@ const StudentHomeworkDetailPage = () => {
                             )}
                         </div>
 
-                        {/* ... (Sisa kode tampilan Jawaban Teks, File, Nilai tetap sama) ... */}
-                         {/* Jawaban Teks */}
                     {submission?.text_jawaban && (
                         <div className="mb-6">
                             <h3 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -607,7 +526,6 @@ const StudentHomeworkDetailPage = () => {
                         </div>
                     )}
 
-                    {/* Jawaban File */}
                     {submission?.file_jawaban && (
                         <div className="mb-6">
                             <h3 className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -624,7 +542,6 @@ const StudentHomeworkDetailPage = () => {
                         </div>
                     )}
 
-                    {/* Nilai & Feedback */}
                     <div className="mt-6 pt-6 border-t bg-gray-50 -mx-6 -mb-6 p-6 rounded-b-xl">
                         <h3 className="font-bold text-gray-800 mb-3">Penilaian Guru</h3>
                         {submission?.nilai_tugas !== null ? (
@@ -651,7 +568,6 @@ const StudentHomeworkDetailPage = () => {
     );
 };
 
-// --- KOMPONEN TIMER HITUNG MUNDUR ---
 const CountdownTimer = ({ targetDate }: { targetDate: Date }) => {
     const [timeLeft, setTimeLeft] = useState<string>("");
 
@@ -665,19 +581,17 @@ const CountdownTimer = ({ targetDate }: { targetDate: Date }) => {
                 return;
             }
 
-            // Hitung jam, menit, detik
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-            // Format string: "23j 59m 10d"
             setTimeLeft(`${hours}jam ${minutes}menit ${seconds}d`);
         };
 
-        updateTimer(); // Jalan langsung saat mount
-        const interval = setInterval(updateTimer, 1000); // Update tiap 1 detik
+        updateTimer(); 
+        const interval = setInterval(updateTimer, 1000); 
 
-        return () => clearInterval(interval); // Bersihkan timer saat unmount
+        return () => clearInterval(interval); 
     }, [targetDate]);
 
     return <span className="font-mono font-bold tabular-nums">{timeLeft}</span>;

@@ -28,8 +28,7 @@ interface PageProps {
 
 export default function EditClassPage({ params }: PageProps) {
   const router = useRouter();
-  const classId = params.id; // Menggunakan params.id dari dynamic route
-
+  const classId = params.id; 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,14 +40,12 @@ export default function EditClassPage({ params }: PageProps) {
     wali_kelas_uid: "",
   });
 
-  // Fetch data kelas & guru
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
       setError(null);
       try {
         if (!classId) throw new Error("ID kelas tidak ditemukan di URL.");
-        // Fetch kelas
         const classRef = doc(db, "classes", classId);
         const classSnap = await getDoc(classRef);
         if (!classSnap.exists()) throw new Error("Data kelas tidak ditemukan.");
@@ -59,7 +56,6 @@ export default function EditClassPage({ params }: PageProps) {
           tahun_ajaran: data.tahun_ajaran || "",
           wali_kelas_uid: data.wali_kelas_ref?.id || "",
         });
-        // Fetch guru
         const teachersSnap = await getDocs(collection(db, "teachers"));
         setTeachers(
           teachersSnap.docs.map((doc) => ({
@@ -76,13 +72,11 @@ export default function EditClassPage({ params }: PageProps) {
     fetchData();
   }, [classId]);
 
-  // Handle input
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: name === "tingkat" ? Number(value) : value }));
   }
 
-  // Handle submit
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);

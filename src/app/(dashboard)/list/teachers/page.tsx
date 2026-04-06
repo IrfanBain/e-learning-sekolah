@@ -17,11 +17,9 @@ import {
   FiTrash2,
 } from 'react-icons/fi';
 
-// --- PERBAIKAN 1: Impor dari file yang benar ---
 import { deleteTeacherAction, ActionResult } from  '@/app/actions/teacherActions'
 import { BiCurrentLocation } from 'react-icons/bi';
 
-// Tipe Data Guru (dari Firestore)
 interface TeacherData {
   id: string;
   nama_lengkap: string;
@@ -40,16 +38,13 @@ interface TeacherData {
   } | null;
 }
 
-// Komponen Utama Halaman
 export default function ManageTeachersPage() {
   const [allTeachers, setAllTeachers] = useState<TeacherData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user: currentUser } = useAuth();
-
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("Semua Status");
-
   const fetchTeachers = async () => {
     try {
       setLoading(true); setError(null);
@@ -108,17 +103,15 @@ export default function ManageTeachersPage() {
     const promise = deleteTeacherAction(teacherId);
     toast.promise(promise, {
       loading: `Menghapus ${teacherName}...`,
-      // --- PERBAIKAN 2: Tambahkan tipe ActionResult ---
       success: (result: ActionResult) => {
         if (result.success) {
           fetchTeachers();
           return result.message;
         } else {
-          // Kita bisa lempar error lagi agar toast.promise menanganinya
           throw new Error(result.message);
         }
       },
-      error: (err) => `Gagal menghapus: ${err.message}`, // err di sini sudah bertipe Error
+      error: (err) => `Gagal menghapus: ${err.message}`, 
     });
   };
 
@@ -132,13 +125,10 @@ export default function ManageTeachersPage() {
         </div>
       )}
 
-      {/* Kartu Tabel */}
       <div className="bg-white rounded-lg shadow-md">
 
-        {/* Header Kartu */}
         <div className="flex flex-col md:flex-row justify-between items-center p-4 border-b border-gray-200 gap-4">
 
-          {/* Filter Dropdown */}
           <div className="flex gap-2 w-full md:w-auto">
             <div className="relative flex-grow">
               <select
@@ -155,7 +145,6 @@ export default function ManageTeachersPage() {
             </div>
           </div>
 
-          {/* Search & Tombol Tambah */}
           <div className="flex w-full md:w-auto gap-2">
             <div className="relative flex-grow">
               <input
@@ -181,7 +170,6 @@ export default function ManageTeachersPage() {
           </div>
         </div>
 
-        {/* Tabel Konten */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -200,7 +188,6 @@ export default function ManageTeachersPage() {
               {!loading && filteredTeachers.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
 
-                  {/* Kolom Info */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -219,17 +206,14 @@ export default function ManageTeachersPage() {
                     </div>
                   </td>
 
-                  {/* Kolom NIP/NUPTK */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.nip_nuptk}</td>
 
-                  {/* Kolom Mapel */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {(item.mata_pelajaran_diampu && item.mata_pelajaran_diampu.length > 0)
                       ? item.mata_pelajaran_diampu.slice(0, 2).join(', ') + (item.mata_pelajaran_diampu.length > 2 ? '...' : '')
                       : '-'}
                   </td>
 
-                  {/* Kolom Status */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-3 py-1 text-sm font-medium rounded-full capitalize ${
                         item.status_kepegawaian === 'pns' ? 'bg-green-100 text-green-800' :
@@ -241,7 +225,6 @@ export default function ManageTeachersPage() {
                     </span>
                   </td>
 
-                  {/* Kolom Aksi */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex gap-3">
                        <Link
@@ -279,7 +262,6 @@ export default function ManageTeachersPage() {
             </tbody>
           </table>
 
-          {/* Pesan jika tidak ada data */}
           {!loading && filteredTeachers.length === 0 && (
             <div className="p-10 text-center text-gray-500">
               Tidak ada guru yang ditemukan dengan filter saat ini.

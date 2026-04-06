@@ -9,7 +9,6 @@ import { db, getClientAuth } from "@/lib/firebaseConfig";
 const INACTIVITY_TIMEOUT_MS = 3600 * 1000;
 const LAST_ACTIVITY_KEY = "lastActivityTime";
 
-// ------------------ TYPES ------------------
 interface AuthUser {
   uid: string;
   email: string | null;
@@ -28,14 +27,12 @@ interface AuthContextType {
   logout: () => Promise<void>;
 }
 
-// ------------------ CONTEXT ------------------
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   logout: async () => {},
 });
 
-// ------------------ PROVIDER ------------------
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,7 +73,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (docSnap.exists()) {
             const userData = docSnap.data();
 
-            // 🔥 Ambil data siswa tambahan
             let extraStudentData = {};
             if (userData.role === "student") {
               const studentRef = doc(db, "students", firebaseUser.uid);
@@ -96,7 +92,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               }
             }
 
-            // 🔗 Gabungkan data users + (jika ada) students
             setUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
@@ -139,5 +134,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return <AuthContext.Provider value={{ user, loading, logout }}>{children}</AuthContext.Provider>;
 };
 
-// ------------------ HOOK ------------------
 export const useAuth = () => useContext(AuthContext);

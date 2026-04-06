@@ -2,9 +2,9 @@
 
 import Image from "next/image"
 import { useAuth } from '@/context/authContext';
-import React, { useState, useEffect } from "react"; // <-- IMPOR BARU
-import { db } from "@/lib/firebaseConfig"; // <-- IMPOR BARU
-import { type User as AuthUser } from 'firebase/auth'; // <-- IMPOR BARU
+import React, { useState, useEffect } from "react"; 
+import { db } from "@/lib/firebaseConfig"; 
+import { type User as AuthUser } from 'firebase/auth'; 
 import {
     collection,
     query,
@@ -12,17 +12,16 @@ import {
     getDoc,
     Timestamp,
     orderBy,
-    onSnapshot, // <-- IMPOR BARU
+    onSnapshot, 
     QuerySnapshot,
     DocumentData,
     where, 
     QueryConstraint,
-    limit // <-- IMPOR BARU
+    limit 
 } from 'firebase/firestore';
-import { Loader2, Megaphone } from "lucide-react"; // <-- IMPOR BARU
-import Link from "next/link"; // <-- IMPOR BARU
+import { Loader2, Megaphone } from "lucide-react"; 
+import Link from "next/link"; 
 
-// --- DEFINISI TIPE ---
 
 interface AnnouncementDoc {
     id: string;
@@ -35,31 +34,27 @@ interface AnnouncementDoc {
 const Announcements = () => {
   const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
   
-  // --- STATE BARU ---
   const [announcements, setAnnouncements] = useState<AnnouncementDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<"student" | "teacher" | "admin" | null>(null);
 
-  // --- 1. Ambil Data Role Pengguna ---
   useEffect(() => {
     if (user?.uid && !authLoading) {
       const fetchUserData = async () => {
         try {
-          // Asumsi: SEMUA data user (termasuk role) ada di koleksi 'users'
           const userDocRef = doc(db, "users", user.uid);
           const userDocSnap = await getDoc(userDocRef);
           
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
-            const role = userData.role; // Ambil role (misal: 'teacher')
+            const role = userData.role; 
             
             if (role === 'admin') setUserRole("admin");
             else if (role === 'teacher') setUserRole("teacher");
             else if (role === 'student') setUserRole("student");
-            else setUserRole(null); // Role tidak dikenali
+            else setUserRole(null); 
 
           } else {
-            // Fallback (jika data role ada di 'teachers'/'students')
             const teacherDocRef = doc(db, "teachers", user.uid);
             const teacherDocSnap = await getDoc(teacherDocRef);
             if (teacherDocSnap.exists()) {
@@ -81,13 +76,11 @@ const Announcements = () => {
       fetchUserData();
     }
     if (!user && !authLoading) {
-        setLoading(false); // Selesai loading jika tidak ada user
+        setLoading(false); 
     }
   }, [user, authLoading]);
 
-  // --- 2. Ambil Pengumuman (Real-time & Difilter) ---
   useEffect(() => {
-    // Jangan jalankan jika role belum didapat atau masih loading auth
     if (!userRole || authLoading) {
         if (!authLoading) setLoading(false);
         return;
@@ -98,7 +91,6 @@ const Announcements = () => {
     const queryConstraints: QueryConstraint[] = [];
 
     if (userRole === 'admin') {
-        // Admin melihat SEMUA
     } else if (userRole === 'teacher') {
         queryConstraints.push(where("target_audiens", "in", ["Semua", "Guru"]));
     } else if (userRole === 'student') {
@@ -106,7 +98,7 @@ const Announcements = () => {
     }
 
     queryConstraints.push(orderBy("tanggal_dibuat", "desc"));
-    queryConstraints.push(limit(3)); // <-- HANYA AMBIL 3 TERBARU
+    queryConstraints.push(limit(3)); 
 
     const q = query(
         collection(db, "announcements"),
@@ -126,18 +118,16 @@ const Announcements = () => {
         (err: any) => {
             console.error("Error listening to announcements:", err);
             setLoading(false);
-            // Jangan tampilkan toast error di widget dashboard
         }
     );
 
     return () => unsubscribe();
-  }, [userRole, authLoading]); // <-- Jalankan ulang jika 'userRole' berubah
+  }, [userRole, authLoading]);
 
-  // Array warna-warni (sesuai style Anda)
   const colorClasses = [
-    'bg-blue-100 text-blue-800', // Mirip lamaSkyLight
-    'bg-purple-100 text-purple-800', // Mirip lamaPurpleLight
-    'bg-yellow-100 text-yellow-800' // Mirip lamaYellowLight
+    'bg-blue-100 text-blue-800', 
+    'bg-purple-100 text-purple-800', 
+    'bg-yellow-100 text-yellow-800' 
   ];
 
   return (
@@ -150,7 +140,6 @@ const Announcements = () => {
       </div>
       <div className="flex flex-col gap-3 mt-4">
         
-        {/* --- KONTEN DINAMIS --- */}
         {loading ? (
             <div className="flex justify-center items-center h-40">
                 <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -164,13 +153,11 @@ const Announcements = () => {
             announcements.map((item, index) => (
                 <div 
                     key={item.id} 
-                    // Gunakan index % 3 (0, 1, 2) untuk mengambil warna
                     className={`rounded-md p-4 ${colorClasses[index % colorClasses.length]}`}
                 >
                   <div className="flex items-center justify-between">
                     <h2 className="font-semibold text-gray-800">{item.judul}</h2>
                     <span className="text-xs text-gray-500 bg-white/70 rounded-md px-1.5 py-0.5">
-                      {/* Tambahkan pengecekan null '?' */}
                       {item.tanggal_dibuat?.toDate().toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) || 'Baru'}
                     </span>
                   </div>

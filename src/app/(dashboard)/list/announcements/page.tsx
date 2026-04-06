@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/authContext'; // (Sesuaikan path)
-import { db } from '@/lib/firebaseConfig'; // (Sesuaikan path)
+import { useAuth } from '@/context/authContext'; 
+import { db } from '@/lib/firebaseConfig'; 
 import { type User as AuthUser } from 'firebase/auth';
 import {
     collection,
@@ -38,7 +38,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// --- (Definisi Tipe) ---
 interface AnnouncementDoc {
     id: string;
     judul: string;
@@ -46,73 +45,60 @@ interface AnnouncementDoc {
     tanggal_dibuat: Timestamp; 
     admin_ref: DocumentReference;
     admin_nama: string;
-    target_audiens: "Semua" | "Siswa" | "Guru"; // Ini adalah data, tetap "Guru" (Indonesia)
+    target_audiens: "Semua" | "Siswa" | "Guru"; 
 }
 type AnnouncementFormData = {
     judul: string;
     isi: string;
-    target_audiens: "Semua" | "Siswa" | "Guru"; // Ini adalah data
+    target_audiens: "Semua" | "Siswa" | "Guru"; 
 };
 const initialFormData: AnnouncementFormData = {
     judul: "",
     isi: "",
     target_audiens: "Semua",
 };
-// (Kita tidak perlu AuthUserData lagi, kita gunakan AuthUser)
 
-// --- KOMPONEN UTAMA ---
 const AnnouncementsPage = () => {
     const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
     
     const [announcements, setAnnouncements] = useState<AnnouncementDoc[]>([]);
     const [adminName, setAdminName] = useState<string>("Admin"); 
-    
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState<AnnouncementDoc | null>(null);
-
-    // --- MODIFIKASI: Tipe state role ---
     const [userRole, setUserRole] = useState<"student" | "teacher" | "admin" | null>(null);
 
-    // --- 1. Ambil Data Role & Nama ---
     useEffect(() => {
         if (user?.uid && !authLoading) {
             const fetchUserData = async () => {
                 try {
-                    // Asumsi: SEMUA data user (termasuk role & nama) ada di koleksi 'users'
                     const userDocRef = doc(db, "users", user.uid);
                     const userDocSnap = await getDoc(userDocRef);
                     
                     if (userDocSnap.exists()) {
                         const userData = userDocSnap.data();
-                        const role = userData.role; // Ambil role (misal: 'teacher')
+                        const role = userData.role; 
                         
                         if (role === 'admin') {
                             setAdminName(userData.nama_lengkap || user.displayName || "Admin");
                             setUserRole("admin");
-                        // --- MODIFIKASI: Gunakan 'teacher' ---
                         } else if (role === 'teacher') {
                             setUserRole("teacher");
-                        // --- MODIFIKASI: Gunakan 'student' ---
                         } else if (role === 'student') {
                             setUserRole("student");
                         } else {
                             throw new Error("Role Anda tidak dikenali.");
                         }
                     } else {
-                        // Coba cek 'teachers' jika di 'users' tidak ada
                         const teacherDocRef = doc(db, "teachers", user.uid);
                         const teacherDocSnap = await getDoc(teacherDocRef);
                         if (teacherDocSnap.exists()) {
-                            // --- MODIFIKASI: Gunakan 'teacher' ---
                              setUserRole("teacher");
                         } else {
-                             // Coba cek 'students'
                              const studentDocRef = doc(db, "students", user.uid);
                              const studentDocSnap = await getDoc(studentDocRef);
                              if (studentDocSnap.exists()) {
-                                // --- MODIFIKASI: Gunakan 'student' ---
                                  setUserRole("student");
                              } else {
                                  throw new Error("Data profil Anda tidak ditemukan.");
@@ -131,7 +117,6 @@ const AnnouncementsPage = () => {
         }
     }, [user, authLoading]);
 
-    // --- 2. Ambil Daftar Pengumuman (Real-time & Difilter) ---
     useEffect(() => {
         if (!userRole) {
             if (!authLoading) setLoading(false);
@@ -143,12 +128,8 @@ const AnnouncementsPage = () => {
         const queryConstraints: QueryConstraint[] = [];
 
         if (userRole === 'admin') {
-            // Admin melihat SEMUA
-        // --- MODIFIKASI: Gunakan 'teacher' ---
         } else if (userRole === 'teacher') {
-            // Guru melihat "Semua" ATAU "Guru" (data 'target_audiens' tetap 'Guru')
             queryConstraints.push(where("target_audiens", "in", ["Semua", "Guru"]));
-        // --- MODIFIKASI: Gunakan 'student' ---
         } else if (userRole === 'student') {
             queryConstraints.push(where("target_audiens", "in", ["Semua", "Siswa"]));
         }
@@ -186,9 +167,8 @@ const AnnouncementsPage = () => {
         );
 
         return () => unsubscribe();
-    }, [userRole]); // <-- Dependensi sudah benar
+    }, [userRole, authLoading]); 
 
-    // --- (Fungsi Hapus tidak berubah) ---
     const executeDelete = async (docId: string, title: string) => {
         const loadingToastId = toast.loading(`Menghapus "${title}"...`);
         try {
@@ -232,12 +212,8 @@ const AnnouncementsPage = () => {
         ), { duration: 10000 });
     };
 
-
-    // --- TAMPILAN (RENDER) ---
-    // (Render tidak berubah, 'userRole' sudah otomatis 'teacher')
     return (
         <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
-            {/* Header Halaman */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Pengumuman</h1>
                 
@@ -262,7 +238,6 @@ const AnnouncementsPage = () => {
                 </div>
             )}
 
-            {/* Daftar Pengumuman */}
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
                 {loading ? (
                     <div className="flex justify-center items-center h-60">
@@ -293,7 +268,6 @@ const AnnouncementsPage = () => {
                 )}
             </div>
 
-            {/* Modal Buat/Edit Pengumuman */}
             {showModal && userRole === 'admin' && (
                 <AnnouncementModal 
                     onClose={() => setShowModal(false)}
@@ -306,16 +280,13 @@ const AnnouncementsPage = () => {
     );
 };
 
-// --- KOMPONEN ITEM (DAFTAR) ---
-// --- MODIFIKASI: Tipe 'role' ---
 const AnnouncementItem = ({ item, role, onEdit, onDelete }: { 
     item: AnnouncementDoc,
-    role: "admin" | "teacher" | "student" | null, // <-- MODIFIKASI
+    role: "admin" | "teacher" | "student" | null, 
     onEdit: () => void,
     onDelete: () => void
 }) => {
     
-    // (Fungsi 'getAudienceChip' tidak berubah, tetap "Guru")
     const getAudienceChip = () => {
         switch(item.target_audiens) {
             case "Siswa":
@@ -355,7 +326,6 @@ const AnnouncementItem = ({ item, role, onEdit, onDelete }: {
                 </div>
             </div>
             
-            {/* (Render kondisional tidak berubah, 'userRole' sudah otomatis 'teacher') */}
             {role === 'admin' && (
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-shrink-0">
                     <button
@@ -378,8 +348,6 @@ const AnnouncementItem = ({ item, role, onEdit, onDelete }: {
     );
 };
 
-// --- KOMPONEN MODAL (UNTUK BUAT/EDIT) ---
-// (Tidak ada perubahan di sini, <option value="Guru"> tetap "Guru")
 const AnnouncementModal = ({ onClose, existingData, adminUid, adminName }: {
     onClose: () => void;
     existingData: AnnouncementDoc | null;

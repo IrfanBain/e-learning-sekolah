@@ -11,15 +11,11 @@ import {
 import Image from 'next/image';
 import Link from 'next/link'; 
 
-// --- UBAH: Import dari lib/data ---
-import { dummyMessages } from '@/lib/data'; // Import data
-import type { InboxMessage } from '@/lib/data'; // Import tipe (opsional tapi bagus)
+import { dummyMessages } from '@/lib/data'; 
+import type { InboxMessage } from '@/lib/data'; 
 
 export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  // const [messages, setMessages] = useState(dummyMessages); // Tidak perlu state jika data statis
-
-  // Langsung filter dari data yang diimpor
   const filteredMessages = dummyMessages.filter(msg =>
     msg.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
     msg.sender.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -29,10 +25,8 @@ export default function MessagesPage() {
     <div className="p-4 md:p-8">
       <h2 className="text-2xl font-semibold mb-5">Kotak Masuk</h2>
 
-      {/* Kartu Putih Utama */}
       <div className="bg-white rounded-lg shadow-md">
 
-        {/* Header Kartu: Tombol Tulis, Search, Filter (Tidak Berubah) */}
         <div className="flex flex-col md:flex-row justify-between items-center p-4 border-b border-gray-200 gap-4">
           <button className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 w-full md:w-auto">
             <FiEdit className="w-4 h-4" />
@@ -56,7 +50,6 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Tabel Daftar Pesan (Tidak Berubah) */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -73,12 +66,11 @@ export default function MessagesPage() {
                   key={msg.id} 
                   className={`${!msg.isRead ? 'bg-blue-50 font-bold' : 'bg-white hover:bg-gray-50'}`}
                 >
-                  {/* Kolom Checkbox & Avatar */}
                   <td className="px-4 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <input type="checkbox" className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
                       <Image
-                        src={msg.sender.avatar} // Gunakan avatar dari data
+                        src={msg.sender.avatar} 
                         alt={msg.sender.name}
                         width={32}
                         height={32}
@@ -87,7 +79,6 @@ export default function MessagesPage() {
                     </div>
                   </td>
                   
-                  {/* Kolom Pengirim */}
                   <td className="px-4 py-4 whitespace-nowrap w-48">
                      <Link href={`/list/messages/${msg.id}`} passHref className="cursor-pointer">
                       <span className={!msg.isRead ? 'text-blue-800' : 'text-gray-900'}>
@@ -96,7 +87,6 @@ export default function MessagesPage() {
                     </Link>
                   </td>
 
-                  {/* Kolom Subjek & Cuplikan */}
                   <td className="px-4 py-4 whitespace-nowrap">
                     <Link href={`/list/messages/${msg.id}`} passHref className="cursor-pointer">
                       <div className="flex items-center gap-2">
@@ -110,7 +100,6 @@ export default function MessagesPage() {
                     </Link>
                   </td>
                   
-                  {/* Kolom Tanggal & Aksi */}
                   <td className="px-4 py-4 whitespace-nowrap text-right">
                     <div className="flex items-center justify-end gap-3">
                       <span className={`text-sm ${!msg.isRead ? 'text-blue-700' : 'text-gray-500'}`}>

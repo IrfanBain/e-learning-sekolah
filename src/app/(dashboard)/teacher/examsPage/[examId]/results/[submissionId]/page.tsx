@@ -13,9 +13,8 @@ import {
     getDoc,
     Timestamp,
     DocumentReference,
-    updateDoc // <-- BARU: Impor updateDoc
+    updateDoc 
 } from 'firebase/firestore';
-// --- BARU: Impor ikon Save ---
 import { 
     Loader2, 
     ArrowLeft, 
@@ -31,15 +30,11 @@ import {
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 
-// --- DEFINISI TIPE ---
-
-// Data dari koleksi 'exams'
 interface ExamData {
     judul: string;
     tipe: "Pilihan Ganda" | "Esai" | "Tugas (Upload File)" | "Esai Uraian" | "PG dan Esai";
 }
 
-// Data dari koleksi 'soal'
 interface SoalData {
     id: string;
     urutan: number;
@@ -52,40 +47,35 @@ interface SoalData {
     jumlah_input?: number;
 }
 
-// Data dari koleksi 'student's_answer'
 interface SubmissionData {
     jawaban: string[]; 
     student_ref: DocumentReference;
     latihan_ref: DocumentReference;
-    nilai_akhir?: number; // Skor PG
-    nilai_esai?: number;  // <-- BARU: Skor Esai
+    nilai_akhir?: number; 
+    nilai_esai?: number;  
     nilai_akhir_scaled?: number;
     skor_per_soal?: EssayScoresState;
     waktu_selesai: Timestamp;
     status: string;
 }
 
-// --- BARU: Interface untuk Summary Statistik ---
 interface SummaryStats {
     correct: number;
     incorrect: number;
     essays: number;
-    totalScore: number; // Skor PG yang diperoleh
-    maxScore: number; // Skor Maksimal Overall
-    maxScorePG: number; // Skor Maksimal PG
-    maxScoreEsai: number; // Skor Maksimal Esai
-    finalScore: number; // Skor Akhir (PG Earned + Esai Earned)
-    finalScoreRaw: number; // <-- BARU: Skor Mentah (misal: 47)
+    totalScore: number;
+    maxScore: number; 
+    maxScorePG: number; 
+    maxScoreEsai: number; 
+    finalScore: number; 
+    finalScoreRaw: number; 
     finalScoreScaled: number;
 }
 
-// Data dari koleksi 'students'
 interface StudentData {
     nama_lengkap: string;
 }
 
-// --- BARU: Tipe untuk state skor esai ---
-// (Menyimpan skor inputan guru per soal, misal: { "id-soal-1": 10, "id-soal-2": 5 })
 type EssayScoresState = {
     [soalId: string]: number; 
 };
@@ -95,33 +85,27 @@ const StudentResultPage = () => {
     const router = useRouter();
     const { user, loading: authLoading } = useAuth();
     const submissionId = params.submissionId as string;
-
     const [exam, setExam] = useState<ExamData | null>(null);
     const [submission, setSubmission] = useState<SubmissionData | null>(null);
     const [studentName, setStudentName] = useState<string>("");
     const [soalList, setSoalList] = useState<SoalData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
-    // --- BARU: State untuk penilaian esai ---
     const [essayScores, setEssayScores] = useState<EssayScoresState>({});
     const [isSaving, setIsSaving] = useState(false);
     const [manualPgScore, setManualPgScore] = useState<number | string>("");
 
-    // --- BARU: Memo untuk menghitung total skor esai saat ini ---
     const currentTotalEssayScore = useMemo(() => {
         return Object.values(essayScores).reduce((sum, score) => sum + (Number(score) || 0), 0);
     }, [essayScores]);
 
 
-    // Statistik untuk summary (Menggunakan interface yang lengkap)
     const [summary, setSummary] = useState<SummaryStats>({
         correct: 0,
         incorrect: 0,
         essays: 0,
         totalScore: 0,
         maxScore: 0,
-        // --- PROPERTI BARU (Wajib ditambahkan) ---
         maxScorePG: 0, 
         maxScoreEsai: 0,
         finalScore: 0,
@@ -135,7 +119,6 @@ const StudentResultPage = () => {
         setError(null);
 
         try {
-            // 1. Ambil data jawaban siswa (submission)
             const subRef = doc(db, "students_answers", submissionId);
             const subSnap = await getDoc(subRef);
             if (!subSnap.exists()) {
@@ -144,9 +127,6 @@ const StudentResultPage = () => {
             const subData = subSnap.data() as SubmissionData;
             setSubmission(subData);
 
-            // (Cek keamanan tidak perlu, sudah ditangani di rules)
-
-            // 2. Ambil semua data lain secara paralel
             const studentPromise = getDoc(subData.student_ref);
             const examPromise = getDoc(subData.latihan_ref);
             const soalQuery = query(
@@ -161,14 +141,12 @@ const StudentResultPage = () => {
                 soalPromise
             ]);
 
-            // 3. Set data Siswa
             if (studentSnap.exists()) {
                 setStudentName(studentSnap.data()?.nama_lengkap || "Siswa");
             } else {
                 setStudentName("Siswa (Telah Dihapus)");
             }
 
-            // 4. Set data Latihan
             const examData = examSnap.data() as ExamData;
             if (examSnap.exists()) {
                 setExam(examData);
@@ -176,7 +154,6 @@ const StudentResultPage = () => {
                 throw new Error("Data latihan tidak ditemukan.");
             }
 
-            // 5. Set data Soal dan Hitung Statistik
             const soalData = soalSnap.docs.map(d => ({ ...d.data(), id: d.id } as SoalData));
             setSoalList(soalData);
 
@@ -186,12 +163,11 @@ const StudentResultPage = () => {
             let maxScoreOverall = 0;
             let maxScorePG = 0;
             let maxScoreEsai = 0;
-            let essaysCount = 0; // Counter Soal Esai
+            let essaysCount = 0; 
 
             soalData.forEach((soal, index) => {
                 maxScoreOverall += soal.poin; 
                 
-                // Cek Soal PG
                 if (soal.tipe_soal === "Pilihan Ganda") {
                     maxScorePG += soal.poin;
                     if (soal.kunci_jawaban && subData.jawaban[index] === soal.kunci_jawaban) {
@@ -202,7 +178,6 @@ const StudentResultPage = () => {
                     }
                 }
                 
-                // Cek Soal Esai/Uraian
                 if (soal.tipe_soal === "Esai" || soal.tipe_soal === "Esai Uraian") {
                     maxScoreEsai += soal.poin;
                     essaysCount++;
@@ -217,7 +192,6 @@ const StudentResultPage = () => {
                 finalScoreScaled = Math.round(finalScoreScaled * 100) / 100;
             }const finalScore = totalScorePG + (subData.nilai_esai ?? 0);
             
-            // Set Summary Statistik (Menggabungkan PG dan Esai)
                 setSummary({ 
                 correct, 
                 incorrect, 
@@ -225,16 +199,14 @@ const StudentResultPage = () => {
                 totalScore: totalScorePG, 
                 maxScore: maxScoreOverall, 
                 maxScorePG: maxScorePG,
-                maxScoreEsai: maxScoreEsai, // <-- TAMBAHKAN INI
-                finalScore: finalScore, // <-- TAMBAHKAN INI
+                maxScoreEsai: maxScoreEsai,
+                finalScore: finalScore,
                 finalScoreRaw: finalScoreRaw, 
                 finalScoreScaled: finalScoreScaled,
             });
 
 
-            // --- PENTING: INISIALISASI SKOR ESAI DARI DB (SKOR_PER_SOAL) ---
             if (subData.skor_per_soal) {
-                // Gunakan skor per soal yang sudah tersimpan untuk mengisi state input guru
                 setEssayScores(subData.skor_per_soal as EssayScoresState);
             }
 
@@ -248,7 +220,7 @@ const StudentResultPage = () => {
         } finally {
             setLoading(false);
         }
-    }, [submissionId]); // Hapus 'user' dari dependensi
+    }, [submissionId]); 
 
     useEffect(() => {
         if (user?.uid && !authLoading) {
@@ -260,10 +232,8 @@ const StudentResultPage = () => {
         }
     }, [user, authLoading, fetchDetailData]);
 
-    // --- BARU: Handler untuk input nilai esai ---
     const handleEssayScoreChange = (soalId: string, value: string, maxPoin: number) => {
         const score = parseInt(value, 10);
-        // Validasi: tidak boleh negatif dan tidak boleh > poin maks
         if (score < 0) {
             setEssayScores(prev => ({ ...prev, [soalId]: 0 }));
         } else if (score > maxPoin) {
@@ -273,11 +243,9 @@ const StudentResultPage = () => {
         }
     };
 
-    // --- BARU: Handler untuk simpan nilai esai ---
     const handleSaveEssayScores = async () => {
         if (!submission) return;
         
-        // Validasi: Pastikan semua soal esai sudah diberi nilai
         const essayQuestionIds = soalList.filter(s => s.tipe_soal === 'Esai' || s.tipe_soal === 'Esai Uraian').map(s => s.id);
         const scoredQuestionIds = Object.keys(essayScores);
         
@@ -290,40 +258,30 @@ const StudentResultPage = () => {
         const loadingToastId = toast.loading("Menyimpan nilai esai...");
 
         try {
-            const totalScoreEsaiManual = currentTotalEssayScore; // Total Esai Score
-            
-            // Ambil data dari state summary yang sudah dihitung saat load
+            const totalScoreEsaiManual = currentTotalEssayScore; 
             const scorePGEarned = summary.totalScore;
             const maxTotalRawScore = summary.maxScore;
-            
-            // 2. Hitung Total Skor Mentah & Normalisasi
             const totalScoreRaw = scorePGEarned + totalScoreEsaiManual;
             
             let finalScoreScaled = 0;
             if (maxTotalRawScore > 0) {
                 finalScoreScaled = (totalScoreRaw / maxTotalRawScore) * 100;
-                // Bulatkan ke 2 desimal
                 finalScoreScaled = Math.round(finalScoreScaled * 100) / 100;
             }
 
-            // 3. Simpan ke Database
             const subRef = doc(db, "students_answers", submissionId);
             await updateDoc(subRef, {
-                nilai_esai: totalScoreEsaiManual, // Simpan total skor esai (Raw)
-                skor_per_soal: essayScores, // Simpan detail skor per soal
-                
-                // --- DATA AKHIR YANG PENTING ---
-                nilai_akhir: scorePGEarned, // Simpan Skor Mentah Total (misal 118) ke field lama
-                nilai_akhir_scaled: finalScoreScaled, // Simpan Skor Skala 100 (misal 94.4)
-                // --------------------------------
+                nilai_esai: totalScoreEsaiManual, 
+                skor_per_soal: essayScores,
+                nilai_akhir: scorePGEarned, 
+                nilai_akhir_scaled: finalScoreScaled, 
             });
 
-            // Perbarui state submission secara lokal agar UI update
             setSubmission(prev => prev ? { 
                 ...prev, 
                 nilai_esai: totalScoreEsaiManual, 
-                nilai_akhir: totalScoreRaw, // Update nilai akhir raw
-                nilai_akhir_scaled: finalScoreScaled // Update nilai akhir scaled
+                nilai_akhir: totalScoreRaw, 
+                nilai_akhir_scaled: finalScoreScaled 
             } : null);
             
             toast.success("Nilai esai berhasil disimpan dan nilai akhir diperbarui!", { id: loadingToastId });
@@ -351,12 +309,11 @@ const StudentResultPage = () => {
     try {
       const subRef = doc(db, "students_answers", submissionId);
       await updateDoc(subRef, {
-        nilai_akhir: score // Simpan skor manual ke nilai_akhir
+        nilai_akhir: score
       });
 
-      // Perbarui state submission secara lokal agar UI update
       setSubmission(prev => prev ? { ...prev, nilai_akhir: score } : null);
-      setManualPgScore(""); // Kosongkan input
+      setManualPgScore("");
       
       toast.success("Nilai manual PG berhasil disimpan!", { id: loadingToastId });
       
@@ -370,7 +327,6 @@ const StudentResultPage = () => {
 
 
     if (loading || authLoading) {
-        // ... (render loading tidak berubah)
         return (
             <div className="flex justify-center items-center h-[80vh]">
                 <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
@@ -380,7 +336,6 @@ const StudentResultPage = () => {
     }
 
     if (error) {
-         // ... (render error tidak berubah)
          return (
              <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
                  <button 
@@ -398,12 +353,10 @@ const StudentResultPage = () => {
     }
 
     if (!submission || !exam) {
-        // ... (render data tidak lengkap tidak berubah)
         return <div className="p-8 text-center text-gray-500">Data hasil tidak ditemukan.</div>;
     }
 
     return (
-        // --- MODIFIKASI: Tambah padding-bottom jika ada panel simpan ---
         <div className={`relative p-4 sm:p-6 bg-gray-50 min-h-screen font-sans ${(exam.tipe === 'Esai' || exam.tipe === 'Esai Uraian' || exam.tipe === 'Pilihan Ganda') ? 'pb-48' : ''}`}>
             <button 
                 onClick={() => router.back()}
@@ -412,7 +365,6 @@ const StudentResultPage = () => {
                 Kembali ke List Hasil
             </button>
 
-            {/* Header Info Siswa & Skor */}
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Detail Jawaban: {exam.judul}</h1>
                 <div className="border-t mt-4 pt-4 flex flex-col sm:flex-row justify-between gap-4">
@@ -425,12 +377,7 @@ const StudentResultPage = () => {
                             <p className="text-lg font-semibold text-gray-900">{studentName}</p>
                         </div>
                     </div>
-                    
-                    {/* --- MODIFIKASI: Tampilan Skor UTAMA di Header --- */}
                     <div className="text-left sm:text-right">
-                        
-                        {/* 1. TAMPILAN KHUSUS TIPE CAMPURAN */}
-                        
                        {exam.tipe === 'PG dan Esai' && (
                             <div className="space-y-1">
                                 <p className="text-sm font-medium text-gray-500">Nilai Akhir</p>
@@ -440,7 +387,6 @@ const StudentResultPage = () => {
                             </div>
                         )}
                         
-                        {/* 2. TAMPILAN TIPE LAMA (PG MURNI) */}
                         {exam.tipe === 'Pilihan Ganda' && (
                             <>
                                 <p className="text-sm text-gray-500">Nilai Akhir (Pilihan Ganda)</p>
@@ -448,7 +394,6 @@ const StudentResultPage = () => {
                             </>
                         )}
                         
-                        {/* 3. TAMPILAN TIPE LAMA (ESAI MURNI) */}
                         {(exam.tipe === 'Esai' || exam.tipe === "Esai Uraian") && (
                              <>
                                 <p className="text-sm text-gray-500">Nilai Akhir (Esai/uraian)</p>
@@ -459,12 +404,9 @@ const StudentResultPage = () => {
                         )}
                     </div>
                 </div>
-
-                {/* --- MODIFIKASI: Tampilan Ringkasan Jawaban --- */}
                 <div className="mt-4 pt-4 border-t flex flex-wrap gap-4 text-sm">
                     {exam.tipe === 'PG dan Esai' && (
                         <>
-                            {/* Chip 1: Statistik Benar/Salah (Dari PG) */}
                             <div className="flex items-center gap-2 px-3 py-1 bg-gray-50 rounded-full border border-gray-200">
                                 <Check className="w-4 h-4 text-green-600" />
                                 <span className="font-semibold text-gray-700">{summary.correct} Benar</span>
@@ -474,7 +416,6 @@ const StudentResultPage = () => {
                                 <span className="font-semibold text-gray-700">{summary.incorrect} Salah</span>
                             </div>
 
-                            {/* Chip 2: Rincian Skor PG (Pindah Kesini) */}
                             <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full border border-blue-200">
                                 <Medal className="w-4 h-4 text-blue-600" />
                                 <span className="text-blue-800">
@@ -482,7 +423,6 @@ const StudentResultPage = () => {
                                 </span>
                             </div>
 
-                            {/* Chip 3: Rincian Skor Esai (Pindah Kesini) */}
                             <div className="flex items-center gap-2 px-3 py-1 bg-yellow-50 rounded-full border border-yellow-200">
                                 <MessageSquare className="w-4 h-4 text-yellow-600" />
                                 <span className="text-yellow-800">
@@ -490,7 +430,6 @@ const StudentResultPage = () => {
                                 </span>
                             </div>
                             
-                            {/* Chip 4: Info Total Mentah (Opsional, biar guru tau pembaginya) */}
                             <div className="flex text-xs items-center text-gray-400 font-medium ml-auto sm:ml-0">
                                 (Poin Diperoleh: {summary.finalScoreRaw} / {summary.maxScore})
                             </div>
@@ -522,45 +461,11 @@ const StudentResultPage = () => {
             </div>
 
             
-    {/* {(exam.tipe === 'Pilihan Ganda' || exam.tipe ==='PG dan Esai') && (
-        <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100 mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div className="w-full sm:w-auto">
-              <label htmlFor="manual-pg-score" className="block text-sm font-medium text-gray-700">
-                Beri Nilai Manual (0-100)
-              </label>
-              <input
-                id="manual-pg-score"
-                type="number"
-                value={manualPgScore}
-                onChange={(e) => setManualPgScore(e.target.value)}
-                min={0}
-                max={100}
-                className="mt-1 w-full sm:w-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm"
-                placeholder={submission.nilai_akhir?.toString() ?? "0"}
-             />
-            </div>
-            <button
-              onClick={handleSaveManualPgScore}
-              disabled={isSaving}
-              className="flex items-center justify-center gap-2 w-full sm:w-auto py-2 px-6 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-              Simpan Nilai Manual
-            </button>
-          </div>
-        </div>
-      )} */}
-
-      {/* Daftar Soal & Jawaban */}
-        {/* Daftar Soal & Jawaban */}
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Tinjauan Jawaban</h2>
             <div className="space-y-4">
                 
-            {/* KODE BERSIH: Loop hanya sekali, semua data diambil dari 'submission.jawaban[index]' */}
             {soalList.map((soal, index) => { 
                 
-                // 1. Ambil Jawaban Siswa per Soal
                 const studentAnswer = submission.jawaban[index];
                 const isCorrect = soal.kunci_jawaban === studentAnswer;
                 const pgScore: number = (soal.tipe_soal === 'Pilihan Ganda' && isCorrect) ? soal.poin : 0;
@@ -568,7 +473,6 @@ const StudentResultPage = () => {
                 return (
                     <div key={soal.id} className="mb-8 p-4 bg-white shadow rounded-lg border border-gray-200">
                         
-                        {/* --- Bagian Atas: Pertanyaan & Poin --- */}
                         <div className="pb-3 mb-3 border-b border-gray-100">
                             <h3 className="text-xl font-bold text-gray-800">Soal Nomor {soal.urutan}</h3>
                             <p className="text-sm font-medium text-gray-500 mb-2">Tipe: {soal.tipe_soal} | Poin Maksimal: {soal.poin}</p>
@@ -577,19 +481,14 @@ const StudentResultPage = () => {
                             </div>
                         </div>
 
-                        {/* ========================================= */}
-                        {/* --- KONDISIONAL RENDER BERSIH --- */}
-                        {/* ========================================= */}
                         
-                        {/* 1. RENDER PG (Otomatis) */}
                         {soal.tipe_soal === 'Pilihan Ganda' && (
                             <div className="space-y-4">
                                 <RenderPilihanGanda 
                                     soal={soal} 
-                                    studentAnswer={studentAnswer} // <-- MENGGUNAKAN VARIABEL YANG BENAR
+                                    studentAnswer={studentAnswer} 
                                     correctAnswer={soal.kunci_jawaban}
                                 />
-                                {/* Display Skor Otomatis */}
                                 <div className="pt-2 border-t">
                                     <p className="block text-sm font-medium text-gray-700">Skor Otomatis (Maks: {soal.poin} Poin)</p>
                                     <div className={`mt-1 p-2 rounded-md font-bold text-lg ${isCorrect ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
@@ -599,7 +498,6 @@ const StudentResultPage = () => {
                             </div>
                         )}
 
-                        {/* 2. RENDER ESAI (Manual) */}
                         {soal.tipe_soal === 'Esai' && (
                             <RenderEsai 
                                 soal={soal} 
@@ -610,7 +508,6 @@ const StudentResultPage = () => {
                             />
                         )}
 
-                        {/* 3. RENDER ESAI URAIAN (Manual Multi-Input) */}
                         {soal.tipe_soal === 'Esai Uraian' && (
                             <RenderEsaiUraian 
                                 soal={soal} 
@@ -626,7 +523,6 @@ const StudentResultPage = () => {
             })}
             </div>
 
-            {/* --- BARU: Panel Simpan Nilai Esai (Sticky) --- */}
        
             {(exam.tipe === 'Esai' || exam.tipe === 'Esai Uraian' || exam.tipe === 'PG dan Esai') && (
                 <div className=" bottom-5 left-7 right-7 bg-white p-4 border-t border-gray-200 shadow-lg rounded-md mt-5">
@@ -657,7 +553,6 @@ const StudentResultPage = () => {
     );
 };
 
-// --- KOMPONEN HELPER (TIDAK BERUBAH) ---
 const RenderPilihanGanda = ({ soal, studentAnswer, correctAnswer }: {
     soal: SoalData,
     studentAnswer: string,
@@ -671,7 +566,7 @@ const RenderPilihanGanda = ({ soal, studentAnswer, correctAnswer }: {
                 const isCorrect = correctAnswer === key;
                 const isStudentAnswer = studentAnswer === key;
                 
-                let chipStyle = "bg-gray-100 text-gray-800"; // Default
+                let chipStyle = "bg-gray-100 text-gray-800";
                 let icon = null;
 
                 if (isCorrect) {
@@ -699,17 +594,15 @@ const RenderPilihanGanda = ({ soal, studentAnswer, correctAnswer }: {
     );
 };
 
-// --- MODIFIKASI: Komponen RenderEsai ---
 const RenderEsai = ({ soal, studentAnswer, scoreValue, onScoreChange, isGraded }: {
     soal: SoalData,
     studentAnswer: string,
-    scoreValue: number, // Nilai dari state
+    scoreValue: number, 
     onScoreChange: (value: string) => void,
-    isGraded: boolean // Apakah sudah ada nilai_esai di DB
+    isGraded: boolean
 }) => {
     return (
         <div className="space-y-4">
-            {/* Jawaban Siswa */}
             <div className="p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-md">
                 <p className="font-semibold text-blue-800 mb-1">Jawaban Siswa:</p>
                 <p className="text-blue-900 whitespace-pre-wrap text-sm">
@@ -717,7 +610,6 @@ const RenderEsai = ({ soal, studentAnswer, scoreValue, onScoreChange, isGraded }
                 </p>
             </div>
             
-            {/* Rubrik Guru */}
             {soal.rubrik_penilaian && (
                  <div className="p-3 bg-gray-50 border-l-4 border-gray-400 rounded-r-md">
                     <p className="font-semibold text-gray-800 mb-1">Kunci Jawaban/Rubrik Guru:</p>
@@ -727,7 +619,6 @@ const RenderEsai = ({ soal, studentAnswer, scoreValue, onScoreChange, isGraded }
                 </div>
             )}
 
-            {/* --- BARU: Input Skor --- */}
             <div className="pt-2 ">
                 <label 
                     htmlFor={`score-${soal.id}`} 
@@ -745,7 +636,6 @@ const RenderEsai = ({ soal, studentAnswer, scoreValue, onScoreChange, isGraded }
                     className="mt-1 w-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Contoh: 10"
                 />
-                 {/* Tampilkan peringatan jika nilai di DB ada TAPI state input kosong (halaman baru dimuat) */}
                  {isGraded && (scoreValue === null || scoreValue === undefined) && (
                     <p className="text-xs text-green-600 mt-1">
                         Soal ini sudah pernah dinilai (bagian dari total). <br/>
@@ -757,7 +647,6 @@ const RenderEsai = ({ soal, studentAnswer, scoreValue, onScoreChange, isGraded }
     )
 }
 
-// --- BARU: Komponen helper untuk merender dan menilai Jawaban Esai Uraian ---
 const RenderEsaiUraian = ({ soal, studentAnswer, scoreValue, onScoreChange, isGraded }: {
 soal: SoalData,
 studentAnswer: string,
@@ -765,10 +654,8 @@ studentAnswer: string,
 onScoreChange: (value: string) => void,
 isGraded: boolean
 }) => {
- // 1. Tentukan jumlah input yang SEHARUSNYA ada
 const jumlahInput = soal.jumlah_input || 1;
 
-// 2. Parse jawaban JSON yang TERSIMPAN
 let savedAnswers: string[] = [];
 try {
 const parsed = JSON.parse(studentAnswer);
@@ -776,17 +663,15 @@ const parsed = JSON.parse(studentAnswer);
 savedAnswers = parsed;
  }
  } catch (e) {
- // Biarkan 'savedAnswers' sebagai array kosong jika parse gagal (misal, "")
+
  }
 
-// 3. Buat array TAMPILAN dengan panjang yang BENAR
 const displayAnswers = Array.from({ length: jumlahInput }, (_, index) => {
-return savedAnswers[index] || ""; // Isi dengan jawaban atau string kosong
+return savedAnswers[index] || ""; 
 });
 
 return (
 <div className="space-y-4">
- {/* Jawaban Siswa (di-loop) */}
 <div className="p-3 bg-purple-50 border-l-4 border-purple-400 rounded-r-md">
 <p className="font-semibold text-purple-800 mb-2">Jawaban Siswa:</p>
 <div className="space-y-2">
@@ -803,7 +688,6 @@ return (
 </div>
 </div>
 
-{/* Rubrik Guru */}
 {soal.rubrik_penilaian && (
 <div className="p-3 bg-gray-50 border-l-4 border-gray-400 rounded-r-md">
 <p className="font-semibold text-gray-800 mb-1">Kunci Jawaban/Rubrik Guru:</p>
@@ -813,7 +697,6 @@ return (
 </div>
  )}
 
- {/* Input Skor (Sama seperti RenderEsai) */}
 <div className="pt-2 ">
 <label 
 htmlFor={`score-${soal.id}`} 

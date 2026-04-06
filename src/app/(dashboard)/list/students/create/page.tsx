@@ -1,13 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { createStudentAction } from '@/app/actions/studentActions';
 import { db } from '@/lib/firebaseConfig';
 import { collection, getDocs, query, orderBy, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
-// Interface StudentFormData (di-copy dari modal Anda)
-// Rekomendasi: Pindahkan interface ini ke file terpusat misal 'types/student.ts'
 export interface StudentFormData {
   nama_lengkap: string;
   nisn: string;
@@ -41,11 +39,13 @@ export interface StudentFormData {
 }
 
 interface ClassOption {
-    id: string;         // ID Dokumen Kelas (cth: "VII-A")
-    nama_kelas: string; // Nama Kelas (cth: "VII A")
+    id: string;         
+    
+    nama_kelas: string; 
+    
 }
 
-// Nilai Awal (di-copy dari modal Anda)
+
 const initialState: StudentFormData = {
   nama_lengkap: '', nisn: '', nis: '', kelas: '', email: 'email@gmail.com',
   jenis_kelamin: 'L', tempat_lahir: '', tanggal_lahir: '',
@@ -59,31 +59,28 @@ const initialState: StudentFormData = {
   ortu_ibu_telepon: '',
 };
 
-// Komponen Halaman Tambah Siswa
+
 export default function CreateStudentPage() {
-  const router = useRouter(); // Inisialisasi router
+  const router = useRouter(); 
   const [formData, setFormData] = useState<StudentFormData>(initialState);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
 
-  // --- Fetch Daftar Kelas ---
   useEffect(() => {
     const fetchClasses = async () => {
       setLoadingClasses(true);
       try {
         const classesCollection = collection(db, "classes");
-        // Urutkan berdasarkan tingkat lalu nama (opsional tapi bagus)
         const q = query(classesCollection, orderBy("tingkat", "asc"), orderBy("nama_kelas", "asc"));
         const querySnapshot = await getDocs(q);
         const classList = querySnapshot.docs.map((doc: QueryDocumentSnapshot<DocumentData>) => ({
-          id: doc.id, // ID Dokumen ("VII-A")
-          nama_kelas: doc.data().nama_kelas || doc.id, // Nama asli ("VII A")
+          id: doc.id,
+          nama_kelas: doc.data().nama_kelas || doc.id, 
         }));
         setClasses(classList);
 
-        // Jika ada kelas dan kelas di form belum dipilih, set default ke kelas pertama
         if (classList.length > 0 && !formData.kelas) {
              setFormData(prev => ({ ...prev, kelas: classList[0].id }));
         }
@@ -91,14 +88,13 @@ export default function CreateStudentPage() {
       } catch (err) {
         console.error("Error fetching classes:", err);
         toast.error("Gagal memuat daftar kelas.");
-        // Biarkan dropdown kosong atau tampilkan pesan error
       } finally {
         setLoadingClasses(false);
       }
     };
     fetchClasses();
      // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Hanya fetch sekali
+  }, []); 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -122,26 +118,22 @@ export default function CreateStudentPage() {
 
     if (result.success) {
       toast.success(result.message);
-      // Ganti onClose() dengan navigasi
-      router.push('/list/students'); // <-- Sesuaikan dengan route Anda
-      router.refresh(); // Memastikan data di halaman list ter-update
+      router.push('/list/students'); 
+      router.refresh(); 
     } else {
       setError(result.message); 
     }
   };
 
-  // Handler untuk tombol "Batal"
   const handleCancel = () => {
     if (loading) return;
-    router.push('/list/students'); // <-- Sesuaikan dengan route Anda
+    router.push('/list/students');
   };
 
   return (
-    // Ini adalah wrapper halaman, bukan modal
     <div className="container mx-auto p-4 md:p-8">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-auto">
         
-        {/* Header Halaman */}
         <div className="flex justify-between items-center border-b p-4 md:p-6">
           <h1 className="text-xl md:text-2xl font-semibold">Tambah Data Siswa</h1>
           <button 
@@ -153,14 +145,12 @@ export default function CreateStudentPage() {
           </button>
         </div>
         
-        {/* Form (sama persis dengan yang ada di modal) */}
         <form onSubmit={handleSubmit} className="p-4 md:p-6">
           
           {error && (
             <div className="p-3 bg-red-100 text-red-700 rounded-md mb-4">{error}</div>
           )}
 
-          {/* --- BAGIAN LOGIN (FORM CERDAS) --- */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-md mb-4">
             <h4 className="text-lg font-semibold text-blue-800 mb-2">Data Akun & Profil</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -189,20 +179,18 @@ export default function CreateStudentPage() {
             </div>
           </div>
           
-          {/* --- BAGIAN DATA DIRI --- */}
           <div className="p-4 border rounded-md mb-4">
               <h4 className="text-lg font-semibold text-gray-800 mb-2">Data Diri</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Input name="nis" label="NIS" value={formData.nis} onChange={handleChange} />
                 <Select name="kelas" label="Kelas (Wajib)" value={formData.kelas} onChange={handleChange} 
                         required
-                        disabled={loadingClasses || classes.length === 0} // Disable jika loading atau tidak ada kelas
+                        disabled={loadingClasses || classes.length === 0} 
                         options={
                             loadingClasses
                             ? [{ value: '', label: 'Memuat kelas...' }]
                             : classes.length === 0
                             ? [{ value: '', label: 'Tidak ada kelas'}]
-                            // Map daftar kelas menjadi options
                             : classes.map(cls => ({ value: cls.id, label: cls.nama_kelas }))
                         }
                 />
@@ -218,7 +206,6 @@ export default function CreateStudentPage() {
               </div>
           </div>
 
-          {/* --- BAGIAN ALAMAT --- */}
           <div className="p-4 border rounded-md mb-4">
               <h4 className="text-lg font-semibold text-gray-800 mb-2">Alamat Siswa <span className='text-sm italic text-gray-500'>(Bisa diisi nanti)</span></h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -232,7 +219,6 @@ export default function CreateStudentPage() {
               </div>
           </div>
           
-          {/* --- BAGIAN ORANG TUA --- */}
           <div className="p-4 border rounded-md">
               <h4 className="text-lg font-semibold text-gray-800 mb-2">Data Orang Tua <span className='text-sm italic text-gray-500'>(Bisa diisi nanti)</span></h4>
               <Input name="ortu_alamat" label="Alamat Orang Tua" value={formData.ortu_alamat} onChange={handleChange} />
@@ -252,7 +238,6 @@ export default function CreateStudentPage() {
               </div>
           </div>
 
-          {/* Tombol Aksi */}
           <div className="flex justify-end gap-4 pt-6 border-t mt-6">
             <button type="button" onClick={handleCancel} disabled={loading}
               className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
@@ -269,7 +254,6 @@ export default function CreateStudentPage() {
   );
 }
 
-// --- Komponen Helper Form (sama persis) ---
 type InputProps = {
   label: string;
   name: string;

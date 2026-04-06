@@ -37,17 +37,14 @@ import {
     ShieldOff, 
     Eye,
     XCircle,
-    Clock, // <-- BARU: Tambahkan ikon Jam
-    Edit2, // <-- BARU: Tambahkan ikon Edit
-    Save,  // <-- BARU: Tambahkan ikon Simpan
+    Clock, 
+    Edit2, 
+    Save,  
     RotateCcw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// --- DEFINISI TIPE & DATA ---
-
 interface ExamData {
-// ... (tidak berubah)
     id: string;
     judul: string;
     tipe: "Pilihan Ganda" | "Esai" | "Tugas (Upload File)" | "Esai Uraian" | "PG dan Esai";
@@ -59,7 +56,6 @@ interface ExamData {
 }
 
 interface SoalData {
-// ... (tidak berubah)
     id: string;
     urutan: number;
     pertanyaan: string;
@@ -72,7 +68,6 @@ interface SoalData {
 }
 
 type SoalFormData = {
-// ... (tidak berubah)
     pertanyaan: string;
     poin: number;
     opsiA: string;
@@ -85,7 +80,6 @@ type SoalFormData = {
 }
 
 const initialFormData: SoalFormData = {
-// ... (tidak berubah)
     pertanyaan: "",
     poin: 10,
     opsiA: "",
@@ -97,9 +91,7 @@ const initialFormData: SoalFormData = {
     jumlah_input: 3,
 };
 
-// --- BARU: Helper function untuk konversi Timestamp ke format input datetime-local ---
 /**
- * Mengkonversi objek Date atau Timestamp ke string YYYY-MM-DDTHH:MM
  * @param {Date | Timestamp} dateObj Objek tanggal
  * @returns {string} String yang diformat
  */
@@ -115,8 +107,6 @@ const toDateTimeLocalString = (dateObj: Date | Timestamp): string => {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-
-// --- KOMPONEN UTAMA ---
 
 const TeacherExamManagePage = () => {
     const { user, loading: authLoading } = useAuth();
@@ -134,7 +124,6 @@ const TeacherExamManagePage = () => {
     const [statusLoading, setStatusLoading] = useState(false); 
     const [error, setError] = useState<string | null>(null);
 
-    // --- BARU: State untuk edit deadline ---
     const [isEditingDeadline, setIsEditingDeadline] = useState(false);
     const [newDeadline, setNewDeadline] = useState("");
     const [deadlineLoading, setDeadlineLoading] = useState(false);
@@ -144,10 +133,8 @@ const TeacherExamManagePage = () => {
 
     const examDocRef = useMemo(() => doc(db, "exams", examId), [examId]);
 
-    // --- PENGAMBILAN DATA (FETCHING) ---
 
     const fetchExamData = useCallback(async () => {
-    // ... (tidak berubah, logika cek deadline otomatis sudah ada)
         if (!examId) return;
         setLoadingExam(true);
         try {
@@ -187,7 +174,6 @@ const TeacherExamManagePage = () => {
     }, [examDocRef, examId]);
 
     const fetchSoalList = useCallback(async () => {
-    // ... (tidak berubah)
         if (!examId) return;
         setLoadingSoal(true);
         try {
@@ -215,15 +201,12 @@ const TeacherExamManagePage = () => {
     }, [examId]);
 
     useEffect(() => {
-    // ... (tidak berubah)
         fetchExamData();
         fetchSoalList();
     }, [fetchExamData, fetchSoalList]);
 
-    // --- HANDLER UNTUK FORMULIR ---
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    // ... (tidak berubah)
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
@@ -232,7 +215,6 @@ const TeacherExamManagePage = () => {
     };
 
     const handleAddSoal = async (e: React.FormEvent) => {
-    // ... (tidak berubah)
         e.preventDefault();
         if (!examData) return;
 
@@ -251,7 +233,7 @@ const TeacherExamManagePage = () => {
             urutan: nextUrutan,
             pertanyaan: formData.pertanyaan,
             poin: formData.poin,
-            tipe_soal: targetTipe, // Gunakan targetTipe yang sudah dihitung
+            tipe_soal: targetTipe, 
         };
         
         if (targetTipe === 'Pilihan Ganda') {
@@ -311,13 +293,12 @@ const TeacherExamManagePage = () => {
 
             setFormLoading(true);
 
-            // --- LOGIC BARU: Tentukan tipe target ---
             const targetTipe = examData.tipe === 'PG dan Esai' ? activeTab : examData.tipe;
 
             let updatedSoalData: any = {
                 pertanyaan: formData.pertanyaan,
                 poin: formData.poin,
-                tipe_soal: targetTipe, // Update tipe soal
+                tipe_soal: targetTipe, 
             };
 
             if (targetTipe === 'Pilihan Ganda') {
@@ -333,13 +314,11 @@ const TeacherExamManagePage = () => {
                     D: formData.opsiD,
                 };
                 updatedSoalData.kunci_jawaban = formData.kunci_jawaban;
-                // Bersihkan field tipe lain
                 updatedSoalData.rubrik_penilaian = null;
                 updatedSoalData.jumlah_input = null;
 
             } else if (targetTipe === 'Esai') {
                 updatedSoalData.rubrik_penilaian = formData.rubrik_penilaian;
-                // Bersihkan field tipe lain
                 updatedSoalData.opsi = null;
                 updatedSoalData.kunci_jawaban = null;
                 updatedSoalData.jumlah_input = null;
@@ -352,7 +331,6 @@ const TeacherExamManagePage = () => {
                 }
                 updatedSoalData.jumlah_input = formData.jumlah_input;
                 updatedSoalData.rubrik_penilaian = formData.rubrik_penilaian;
-                // Bersihkan field tipe lain
                 updatedSoalData.opsi = null;
                 updatedSoalData.kunci_jawaban = null;
             }
@@ -373,23 +351,20 @@ const TeacherExamManagePage = () => {
             }
         };
 
-    // --- BARU: Fungsi untuk membatalkan mode edit ---
  const handleCancelEdit = () => {
 setEditingSoal(null);
-setFormData(initialFormData); // Reset form ke kondisi awal
+setFormData(initialFormData); 
 };
 
-    // --- BARU: Fungsi untuk MEMULAI mode edit ---
 const handleStartEdit = (soal: SoalData) => {
 if (examData?.status !== 'Draft') {
  toast.error("Hanya bisa mengedit soal dalam mode Draft.");
  return;
  }
 
-setEditingSoal(soal); // Set soal yang aktif diedit
+setEditingSoal(soal);
 setActiveTab(soal.tipe_soal);
 
-// Isi form di kiri dengan data soal yang dipilih
 if (soal.tipe_soal === 'Pilihan Ganda' && soal.opsi) {
  setFormData({
 pertanyaan: soal.pertanyaan,
@@ -399,16 +374,16 @@ opsiB: soal.opsi['B'] || "",
 opsiC: soal.opsi['C'] || "",
 opsiD: soal.opsi['D'] || "",
 kunci_jawaban: (soal.kunci_jawaban as "A" | "B" | "C" | "D") || "A",
- rubrik_penilaian: "", // Kosongkan rubrik untuk PG
+ rubrik_penilaian: "", 
  });
- } else if (soal.tipe_soal === 'Esai') { // Esai Biasa
+ } else if (soal.tipe_soal === 'Esai') {
  setFormData({
 pertanyaan: soal.pertanyaan,
 poin: soal.poin,
 opsiA: "", opsiB: "", opsiC: "", opsiD: "",
 kunci_jawaban: "A",
 rubrik_penilaian: soal.rubrik_penilaian || "",
-jumlah_input: 1, // Reset ke default
+jumlah_input: 1, 
  });
 } else if (soal.tipe_soal === 'Esai Uraian') {
 setFormData({
@@ -416,12 +391,11 @@ setFormData({
 poin: soal.poin,
  opsiA: "", opsiB: "", opsiC: "", opsiD: "",
  kunci_jawaban: "A",
- rubrik_penilaian: soal.rubrik_penilaian || "", // Reset ke default
-jumlah_input: soal.jumlah_input || 1, // Isi dari data soal
+ rubrik_penilaian: soal.rubrik_penilaian || "",
+jumlah_input: soal.jumlah_input || 1, 
 });
 }
 
- // Scroll ke atas agar form terlihat (opsional tapi bagus)
 window.scrollTo({ top: 0, behavior: 'smooth' });
 if (formRef.current) {
     formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -432,7 +406,6 @@ icon: <Edit2 className="text-blue-500" />
 };
 
 const executeDelete = async (soalId: string, urutan: number) => {
-// ... (tidak berubah)
 const loadingToastId = toast.loading(`Menghapus soal nomor ${urutan}...`);
 try {
 const soalDocRef = doc(db, "exams", examId, "soal", soalId);
@@ -444,15 +417,12 @@ const q = query(soalCollectionRef, where("urutan", ">", urutan));
  const querySnapshot = await getDocs(q);
 
 if (!querySnapshot.empty) {
-// 2. Gunakan batch write untuk update semua sekaligus
 const batch = writeBatch(db);
 
  querySnapshot.forEach((doc) => {
-   // Kurangi 'urutan' dengan 1
    batch.update(doc.ref, { urutan: increment(-1) });
  });
 
- // 3. Commit batch
  await batch.commit();
  
       } else {
@@ -469,7 +439,6 @@ const batch = writeBatch(db);
     };
 
     const handleDeleteSoal = (soalId: string, urutan: number) => {
-    // ... (tidak berubah)
         if (examData?.status !== 'Draft') { 
             toast.error("Tidak bisa menghapus soal jika sudah dipublikasi."); 
             return; 
@@ -519,7 +488,6 @@ const batch = writeBatch(db);
 
 
     const handleChangeStatus = async (newStatus: "Dipublikasi" | "Draft") => {
-    // ... (tidak berubah)
         if (!examData) return;
 
         if (newStatus === "Dipublikasi" && examData.jumlah_soal === 0) {
@@ -588,32 +556,26 @@ const batch = writeBatch(db);
         );
     };
 
-    // --- BARU: Handler untuk membuka mode edit deadline ---
     const handleOpenEditDeadline = () => {
         if (!examData || !examData.tanggal_selesai) return;
-        // Konversi Timestamp ke format YYYY-MM-DDTHH:MM
         const currentDeadlineStr = toDateTimeLocalString(examData.tanggal_selesai);
         setNewDeadline(currentDeadlineStr);
         setIsEditingDeadline(true);
     };
 
-    // --- BARU: Handler untuk batal edit deadline ---
     const handleCancelEditDeadline = () => {
         setIsEditingDeadline(false);
         setNewDeadline("");
     };
 
-    // --- BARU: Handler untuk menyimpan deadline baru ---
     const handleUpdateDeadline = async () => {
         if (!newDeadline) {
             toast.error("Deadline tidak boleh kosong.");
             return;
         }
 
-        // Konversi string input kembali ke Timestamp
         const newTimestamp = Timestamp.fromDate(new Date(newDeadline));
 
-        // Cek apakah deadline baru sudah lewat
         if (new Date(newDeadline) < new Date() && examData?.status !== 'Ditutup') {
              toast.error("Deadline baru tidak boleh di masa lalu.", {
                 icon: <AlertTriangle className="text-red-500" />
@@ -628,8 +590,6 @@ const batch = writeBatch(db);
                 tanggal_selesai: newTimestamp
             });
 
-            // Panggil fetchExamData() lagi untuk sinkronisasi data
-            // Ini PENTING agar UI me-render deadline baru
             await fetchExamData(); 
 
             toast.success("Deadline berhasil diperbarui.", { id: loadingToastId });
@@ -644,10 +604,8 @@ const batch = writeBatch(db);
     };
 
     
-    // --- TAMPILAN (RENDER) ---
 
     if (loadingExam) {
-    // ... (tidak berubah)
         return (
             <div className="flex justify-center items-center h-[80vh]">
                 <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
@@ -657,7 +615,6 @@ const batch = writeBatch(db);
     }
     
     if (error) {
-    // ... (tidak berubah)
         return (
              <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
                  <button 
@@ -675,12 +632,10 @@ const batch = writeBatch(db);
     }
 
     if (!examData) {
-    // ... (tidak berubah)
         return <div className="p-8 text-center text-gray-500">Data Ujian tidak ditemukan.</div>;
     }
 
     if (examData.tipe === "Tugas (Upload File)") {
-    // ... (tidak berubah, tapi panel status akan di-update)
         return (
             <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
                  <button 
@@ -693,7 +648,6 @@ const batch = writeBatch(db);
                      <h1 className="text-2xl font-bold text-gray-800">{examData.judul}</h1>
                      <p className="text-lg text-gray-600 mt-2">Ini adalah Ujian tipe **Tugas (Upload File)**.</p>
                      <p className="text-gray-500 mb-4">Tidak ada penambahan soal Pilihan Ganda atau Esai untuk tipe ini.</p>
-                     {/* --- MODIFIKASI: Kirim props baru ke panel --- */}
                      <StatusAksiPanel 
                         examData={examData} 
                         onChangeStatus={handleChangeStatus} 
@@ -711,7 +665,6 @@ const batch = writeBatch(db);
         )
     }
 
-    // --- HELPER VARIABLE UNTUK TAMPILAN FORM ---
     const showPG = 
         (examData?.tipe === "Pilihan Ganda") || 
         (examData?.tipe === "PG dan Esai" && activeTab === "Pilihan Ganda");
@@ -747,7 +700,6 @@ const batch = writeBatch(db);
                     </span>
                 </div>
                 
-                {/* --- MODIFIKASI: Kirim props baru ke panel --- */}
                 <StatusAksiPanel 
                     examData={examData} 
                     onChangeStatus={handleChangeStatus} 
@@ -792,7 +744,6 @@ const batch = writeBatch(db);
                             </h2>
                         )}
                         
-                        {/* --- BAGIAN SWITCHER TAB (Hanya muncul jika Ujian Campuran) --- */}
                         {examData.tipe === "PG dan Esai" && (
                             <div className="mb-6 bg-gray-50 p-2 rounded-lg border border-gray-200 flex flex-wrap gap-2">
                                 <span className="text-sm font-medium text-gray-600 my-auto mr-2 px-2">
@@ -819,10 +770,8 @@ const batch = writeBatch(db);
                             </div>
                         )}
 
-                        {/* --- FORMULIR UTAMA --- */}
                         <form onSubmit={editingSoal ? handleUpdateSoal : handleAddSoal} className="space-y-4">
                             
-                            {/* Input Pertanyaan & Poin (Selalu Muncul) */}
                             <div>
                                 <label htmlFor="pertanyaan" className="block text-sm font-medium text-gray-700 mb-1">Pertanyaan <span className="text-red-500">*</span></label>
                                 <textarea
@@ -852,7 +801,6 @@ const batch = writeBatch(db);
                                 />
                             </div>
 
-                            {/* --- INPUT KHUSUS PILIHAN GANDA --- */}
                             {showPG && (
                                 <div className="space-y-3 border-t pt-4">
                                     <h3 className="text-md font-semibold text-gray-700">Opsi Pilihan Ganda</h3>
@@ -890,7 +838,6 @@ const batch = writeBatch(db);
                                 </div>
                             )}
 
-                            {/* --- INPUT KHUSUS ESAI (Singkat) --- */}
                             {showEsai && (
                                 <div className="space-y-3 border-t pt-4">
                                      <h3 className="text-md font-semibold text-gray-700">Rubrik Penilaian (Opsional)</h3>
@@ -909,7 +856,6 @@ const batch = writeBatch(db);
                                 </div>
                             )}
 
-                            {/* --- INPUT KHUSUS ESAI URAIAN (Multi-Input) --- */}
                             {showUraian && (
                                 <div className="space-y-3 border-t mt-4">
                                     <h3 className="text-md font-semibold text-gray-700">Pengaturan Soal Uraian</h3>
@@ -943,7 +889,6 @@ const batch = writeBatch(db);
                                 </div>
                             )}
                             
-                            {/* Tombol Simpan & Batal (Tidak Berubah) */}
                             <div className="pt-2 flex flex-col sm:flex-row gap-3">
                                 <button
                                     type="submit"
@@ -1013,8 +958,6 @@ const batch = writeBatch(db);
     );
 };
 
-// --- MODIFIKASI: Komponen Panel Status & Aksi di-refactor ---
-// Menerima prop baru untuk fitur edit deadline
 const StatusAksiPanel = ({ 
     examData, 
     onChangeStatus, 
@@ -1045,7 +988,6 @@ const StatusAksiPanel = ({
     let statusUI: React.ReactNode;
     let buttonUI: React.ReactNode;
 
-    // Format deadline untuk tampilan
     const formattedDeadline = examData.tanggal_selesai
         ? examData.tanggal_selesai.toDate().toLocaleString('id-ID', {
             day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -1099,9 +1041,7 @@ const StatusAksiPanel = ({
                 </div>
             );
             
-            // --- LOGIKA BARU: Tombol & Form Konfirmasi ---
             if (showRevertUI) {
-                // Tampilan Form Konfirmasi
                 buttonUI = (
                     <div className="flex flex-col gap-3 bg-red-50 p-4 rounded-lg border border-red-200 animate-in fade-in zoom-in duration-200 max-w-sm">
                         <div className="flex items-start gap-2">
@@ -1133,7 +1073,7 @@ const StatusAksiPanel = ({
                              <button 
                                 onClick={() => {
                                     if(revertInput === "KONFIRMASI") {
-                                        onChangeStatus('Draft'); // Panggil fungsi ubah status ke Draft
+                                        onChangeStatus('Draft'); 
                                         setShowRevertUI(false);
                                         setRevertInput("");
                                     } else {
@@ -1149,7 +1089,6 @@ const StatusAksiPanel = ({
                     </div>
                 );
             } else {
-                // Tampilan Tombol Biasa
                 buttonUI = (
                     <div className="flex flex-col items-end gap-1.5">
                         <p className="text-xs text-gray-500 italic">Ada kesalahan fatal (salah tanggal/soal)?</p>
@@ -1169,9 +1108,7 @@ const StatusAksiPanel = ({
     return (
         <div className="border-t mt-4 pt-4 flex flex-col md:flex-row justify-between items-start gap-4">
             
-            {/* Kolom Kiri: Info Status & Deadline */}
             <div className="space-y-3">
-                {/* Info Status */}
                 <div>
                     {statusUI}
                     {examData.status === 'Draft' && (
@@ -1191,14 +1128,12 @@ const StatusAksiPanel = ({
                     )}
                 </div>
 
-                {/* --- BARU: Info & Edit Deadline --- */}
                 <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
                         Batas Akhir Pengerjaan (Deadline)
                     </label>
                     
                     {isEditingDeadline ? (
-                        // Tampilan Edit
                         <div className="flex flex-wrap items-center gap-2">
                             <input
                                 type="datetime-local"
@@ -1226,7 +1161,6 @@ const StatusAksiPanel = ({
                             </div>
                         </div>
                     ) : (
-                        // Tampilan Normal
                         <div className="flex flex-wrap items-center gap-3">
                             <div className="flex items-center gap-2 text-gray-800 p-2 bg-gray-50 rounded-md border">
                                 <Clock className="w-5 h-5 text-gray-500" />
@@ -1245,7 +1179,6 @@ const StatusAksiPanel = ({
                 </div>
             </div>
 
-            {/* Kolom Kanan: Tombol Aksi Status */}
             <div className="flex-shrink-0">
                 {buttonUI}
             </div>
@@ -1255,7 +1188,6 @@ const StatusAksiPanel = ({
 
 
 const SoalListItem = ({ soal, onDelete, onEdit, isDisabled }: { 
-// ... (tidak berubah)
     soal: SoalData, 
     onDelete: (soalId: string, urutan: number) => void,
     onEdit: (soal: SoalData) => void,
@@ -1277,9 +1209,9 @@ const SoalListItem = ({ soal, onDelete, onEdit, isDisabled }: {
                 </div>
                 <div className="flex items-center gap-2">
                     <button 
-                        onClick={() => onEdit(soal)} // Panggil onEdit dengan data soal
+                        onClick={() => onEdit(soal)} 
                         className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium disabled:text-gray-400 disabled:cursor-not-allowed"
-                        disabled={isDisabled} // Tombol ini juga akan disable jika status bukan draft
+                        disabled={isDisabled}
                         >
                         <Edit2 className="w-4 h-4" /> Edit
                     </button>
@@ -1329,7 +1261,6 @@ const SoalListItem = ({ soal, onDelete, onEdit, isDisabled }: {
                 {soal.tipe_soal === 'Esai Uraian' && (
 <div className="text-sm mt-2 p-3 bg-purple-50 border-l-4 border-purple-400 rounded-r-md">
  
- {/* Tampilkan Rubrik jika ada */}
  {soal.rubrik_penilaian && (
 <>
  <p className="font-semibold text-purple-800">Rubrik/Kunci Jawaban:</p>
@@ -1337,7 +1268,6 @@ const SoalListItem = ({ soal, onDelete, onEdit, isDisabled }: {
 </>
  )}
 
-{/* Tampilkan Jumlah Input */}
  <p className="font-semibold text-purple-800">Jumlah input jawaban: <strong>{soal.jumlah_input || 'N/A'}</strong></p>
 
  </div>

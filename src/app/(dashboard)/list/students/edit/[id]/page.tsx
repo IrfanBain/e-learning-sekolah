@@ -1,21 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react'; // Impor useRef
+import React, { useState, useEffect, useRef } from 'react'; 
 import { useRouter } from 'next/navigation';
-import Image from 'next/image'; // Impor Image
+import Image from 'next/image'; 
 import { toast } from 'react-hot-toast';
 import { updateStudentAction, StudentUpdateFormData } from '@/app/actions/studentActions';
 import { db } from '@/lib/firebaseConfig';
 import { doc, getDoc, Timestamp, collection, getDocs, query, orderBy, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
-// Interface untuk props halaman dinamis
 interface EditStudentPageProps {
   params: {
     id: string; 
   };
 }
 
-// Interface untuk data siswa
 interface StudentData {
   nama_lengkap: string;
   nisn: string;
@@ -24,13 +22,13 @@ interface StudentData {
   email: string | null;
   jenis_kelamin: string | null;
   tempat_lahir: string | null;
-  tanggal_lahir: any; // Timestamp
+  tanggal_lahir: any; 
   agama: string | null;
   kewarganegaraan: string | null;
   asal_sekolah: string | null;
   nomor_hp: string | null;
   status_siswa: string | null;
-  foto_profil: string | null; // <-- TAMBAHKAN INI (URL foto dari R2)
+  foto_profil: string | null;
   alamat: { [key: string]: string | null };
   orang_tua: { 
     [key: string]: any;
@@ -41,11 +39,10 @@ interface StudentData {
 }
 
 interface ClassOption {
-    id: string;         // ID Dokumen Kelas (cth: "VII-A")
-    nama_kelas: string; // Nama Kelas (cth: "VII A")
+    id: string;       
+    nama_kelas: string; 
 }
 
-// State Awal Form (tidak berubah)
 const initialFormState: Omit<StudentUpdateFormData, 'uid' | 'foto_profil'> = {
   nama_lengkap: '', nisn: '', nis: '', kelas: '', email: '',
   jenis_kelamin: 'L', tempat_lahir: '', tanggal_lahir: '',
@@ -62,22 +59,16 @@ const initialFormState: Omit<StudentUpdateFormData, 'uid' | 'foto_profil'> = {
 export default function EditStudentPage({ params }: EditStudentPageProps) {
   const router = useRouter();
   const { id: studentId } = params; 
-
   const [formData, setFormData] = useState(initialFormState);
-  
-  // --- State Baru untuk Foto ---
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
-
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false); // Untuk loading submit
-  const [pageLoading, setPageLoading] = useState(true); // Untuk loading fetch data awal
+  const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true); 
 
-  // --- LOGIKA FETCH DATA (Diperbarui) ---
   useEffect(() => {
     if (!studentId) return;
 
@@ -87,13 +78,10 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
       setLoadingClasses(true);
       let fetchedStudentData: StudentData | null = null;
       try {
-        // 1. Fetch Data Siswa
         const studentDocRef = doc(db, 'students', studentId);
         const studentSnap = await getDoc(studentDocRef);
         if (!studentSnap.exists()) { throw new Error("Data siswa tidak ditemukan."); }
         fetchedStudentData = studentSnap.data() as StudentData;
-
-        // 2. Fetch Daftar Kelas (taruh di sini agar berjalan paralel jika memungkinkan)
         try {
             const classesCollection = collection(db, "classes");
             const q = query(classesCollection, orderBy("tingkat", "asc"), orderBy("nama_kelas", "asc"));
@@ -105,21 +93,19 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
             setClasses(classList);
         } catch (classErr) {
             console.error("Error fetching classes:", classErr);
-            toast.error("Gagal memuat daftar kelas."); // Beri tahu user
-            // Lanjutkan meski kelas gagal dimuat
+            toast.error("Gagal memuat daftar kelas."); 
         } finally {
-            setLoadingClasses(false); // Selesai loading kelas
+            setLoadingClasses(false);
         }
 
-        // 3. Isi Form State (SETELAH kedua fetch selesai atau gagal)
         if (fetchedStudentData) {
             const formatTimestampToInput = (ts: Timestamp | null | undefined): string => { return !ts?'':ts.toDate().toISOString().split('T')[0]; };
 
             setFormData({
                 nama_lengkap: fetchedStudentData.nama_lengkap || '',
-                nisn: fetchedStudentData.nisn || '', // NISN tidak bisa diedit
+                nisn: fetchedStudentData.nisn || '', 
                 nis: fetchedStudentData.nis || '',
-                kelas: fetchedStudentData.kelas || '', // <-- Isi dengan ID kelas dari DB
+                kelas: fetchedStudentData.kelas || '',
                 email: fetchedStudentData.email || '',
                 jenis_kelamin: fetchedStudentData.jenis_kelamin || 'L',
                 tempat_lahir: fetchedStudentData.tempat_lahir || '',
@@ -146,7 +132,6 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
                 ortu_ibu_pekerjaan: fetchedStudentData.orang_tua?.ibu?.pekerjaan || '',
                 ortu_ibu_telepon: fetchedStudentData.orang_tua?.ibu?.telepon || '',
             });
-             // Set preview foto
             setPreviewUrl(fetchedStudentData.foto_profil || null);
         }
 
@@ -155,32 +140,28 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
         setError("Gagal memuat data siswa: " + err.message);
         toast.error("Gagal memuat data siswa.");
       } finally {
-        setPageLoading(false); // Selesai loading halaman utama
+        setPageLoading(false); 
       }
     };
     fetchStudentData();
   }, [studentId]); 
-
-  // Handler form (sama)
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- Handler Baru untuk File ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // Batas 5MB
+      if (file.size > 5 * 1024 * 1024) { 
         toast.error("Ukuran file terlalu besar. Maksimal 5MB.");
         return;
       }
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file)); // Buat preview lokal
+      setPreviewUrl(URL.createObjectURL(file)); 
     }
   };
 
-  // --- Handler Submit (DIUBAH TOTAL) ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nama_lengkap) {
@@ -190,8 +171,6 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
     
     setLoading(true);
     setError(null);
-    
-    // Ambil URL foto yang ada sekarang (jika ada)
     const docRef = doc(db, 'students', studentId as string);
     const docSnap = await getDoc(docRef);
     let finalPhotoURL: string | null = null;
@@ -199,13 +178,10 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
         finalPhotoURL = (docSnap.data() as StudentData).foto_profil || null;
     }
 
-    // --- Langkah 1: Upload Foto (Jika ada file baru) ---
     if (selectedFile) {
       const toastId = toast.loading('Mempersiapkan unggah foto...');
       try {
         const fileExtension = selectedFile.name.split('.').pop();
-        
-        // 1a. Minta URL aman dari API Route
         const response = await fetch('/api/upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -223,7 +199,6 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
         
         const { uploadUrl, fileUrl } = await response.json() as { uploadUrl: string, fileUrl: string };
         
-        // 1b. Upload file langsung ke Cloudflare R2
         toast.loading('Mengunggah foto...', { id: toastId });
         const uploadResponse = await fetch(uploadUrl, {
           method: 'PUT',
@@ -235,23 +210,22 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
           throw new Error('Upload ke R2 gagal.');
         }
 
-        finalPhotoURL = fileUrl; // Sukses! Gunakan URL baru ini.
+        finalPhotoURL = fileUrl; 
         toast.success('Foto berhasil diunggah!', { id: toastId });
 
       } catch (uploadError: any) {
         setError("Gagal mengunggah foto: " + uploadError.message);
         toast.error(`Gagal mengunggah foto: ${uploadError.message}`, { id: toastId });
         setLoading(false); 
-        return; // Hentikan proses jika upload gagal
+        return; 
       }
     }
     
-    // --- Langkah 2: Update Data ke Firestore ---
     try {
       const result = await updateStudentAction({
         uid: studentId,
         ...formData,
-        foto_profil: finalPhotoURL, // Kirim URL foto (baru atau lama)
+        foto_profil: finalPhotoURL, 
       });
       
       setLoading(false);
@@ -270,7 +244,6 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
     }
   };
 
-  // Handler Tombol Batal (sama)
   const handleBatal = () => {
     if (loading) return; 
     router.push('/list/students');
@@ -301,16 +274,13 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
           </button>
         </div>
         
-        {/* Form diubah menjadi 'space-y-6' untuk jarak antar kartu */}
         <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-6">
           
           {error && (
             <div className="p-3 bg-red-100 text-red-700 rounded-md mb-4">{error}</div>
           )}
 
-          {/* --- BAGIAN AKUN & PROFIL (Di-refactor) --- */}
           <div className="bg-white p-6 rounded-lg shadow-md grid grid-cols-1 md:grid-cols-3 gap-6 items-start border">
-              {/* Kolom 1+2: Info Profil & Akun */}
               <div className="md:col-span-2 space-y-4">
                 <h3 className="text-lg font-semibold border-b pb-2">Informasi Akun & Profil</h3>
                 <Input name="nama_lengkap" label="Nama Lengkap (Wajib)" value={formData.nama_lengkap} onChange={handleChange} required />
@@ -328,11 +298,9 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
                         <input type="text" value={formData.nisn} readOnly className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"/>
                     </div>
                 </div>
-                {/* <Input name="kelas" label="Kelas" value={formData.kelas} onChange={handleChange} /> */}
                 <Input name="email" label="Email (Kontak)" value={formData.email} onChange={handleChange} type="email" />
               </div>
               
-              {/* Kolom 3: Upload Foto */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 text-center md:text-left">Foto Profil</label>
                 <div className="w-40 h-40 mx-auto rounded-full overflow-hidden bg-gray-200 flex items-center justify-center mb-2 border-2 border-gray-300">
@@ -342,7 +310,7 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
                       alt="Preview" 
                       width={160} height={160} 
                       className="object-cover w-full h-full" 
-                      onError={() => setPreviewUrl(null)} // Handle jika URL R2 rusak
+                      onError={() => setPreviewUrl(null)}
                     />
                   ) : (
                     <span className="text-gray-500 text-sm">Tidak Ada Foto</span>
@@ -359,18 +327,16 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
               </div>
           </div>
           
-          {/* --- BAGIAN DATA DIRI --- */}
           <div className="bg-white p-6 rounded-lg shadow-md space-y-4 border">
               <h3 className="text-lg font-semibold border-b pb-2">Data Diri</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Select name="kelas" label="Kelas (Wajib)" value={formData.kelas} onChange={handleChange} required
-                         disabled={loadingClasses || classes.length === 0} // Disable saat loading/kosong
+                         disabled={loadingClasses || classes.length === 0} 
                          options={
                              loadingClasses
                              ? [{ value: formData.kelas || '', label: 'Pilih Kelas' }]
                              : classes.length === 0
                              ? [{ value: '', label: 'Tidak ada kelas'}]
-                             // Opsi dari daftar kelas + pastikan kelas saat ini ada
                              : (formData.kelas && !classes.some(c=>c.id===formData.kelas) ? [{value:formData.kelas, label:`Kelas ID: ${formData.kelas} (Memuat...)`}] : [])
                                .concat(classes.map(cls => ({ value: cls.id, label: cls.nama_kelas })))
                          }
@@ -387,7 +353,6 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
               </div>
           </div>
 
-          {/* --- BAGIAN ALAMAT --- */}
           <div className="bg-white p-6 rounded-lg shadow-md space-y-4 border">
               <h3 className="text-lg font-semibold border-b pb-2">Alamat Siswa</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -401,7 +366,6 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
               </div>
           </div>
           
-          {/* --- BAGIAN ORANG TUA --- */}
           <div className="bg-white p-6 rounded-lg shadow-md space-y-4 border">
               <h3 className="text-lg font-semibold border-b pb-2">Data Orang Tua</h3>
               <Input name="ortu_alamat" label="Alamat Orang Tua" value={formData.ortu_alamat} onChange={handleChange} />
@@ -421,7 +385,6 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
               </div>
           </div>
 
-          {/* Tombol Aksi */}
           <div className="flex justify-end gap-4 pt-6 border-t mt-6">
             <button type="button" onClick={handleBatal} disabled={loading || pageLoading}
               className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
@@ -438,7 +401,6 @@ export default function EditStudentPage({ params }: EditStudentPageProps) {
   );
 }
 
-// --- Komponen Helper (Tidak Berubah) ---
 type InputProps = {
   label: string;
   name: string;

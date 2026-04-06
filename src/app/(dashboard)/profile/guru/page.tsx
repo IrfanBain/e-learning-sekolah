@@ -3,12 +3,10 @@
 import React, { useState, useEffect } from "react";
 import { FiUser, FiHome } from "react-icons/fi";
 import Image from "next/image";
-// 1. MODIFIKASI: Hanya perlu 'doc' dan 'getDoc'
 import { doc, getDoc, DocumentReference } from "firebase/firestore"; 
 import { db } from "@/lib/firebaseConfig"; 
 import { useAuth } from "@/context/authContext"; 
 
-// Interface HANYA untuk Guru
 interface TeacherData {
   fullName: string;
   email: string;
@@ -23,7 +21,6 @@ interface TeacherData {
   mapel: string; 
 }
 
-// Komponen Helper (Hanya InfoItem)
 const InfoItem = ({ label, value }: { label: string, value: string }) => (
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
@@ -53,10 +50,8 @@ export default function GuruProfilePage() {
       try {
         setLoading(true);
         
-        // --- 2. MODIFIKASI UTAMA: Pakai doc() ---
         const teacherDocRef = doc(db, "teachers", uid);
         const teacherSnap = await getDoc(teacherDocRef);
-        // --- AKHIR MODIFIKASI ---
 
         if (!teacherSnap.exists()) {
           console.error("Data GURU tidak ditemukan! (ID Dokumen tidak ada)");
@@ -67,7 +62,6 @@ export default function GuruProfilePage() {
         const teacherData = teacherSnap.data();
 
         let dobString = teacherData.tanggal_lahir?.toDate().toISOString().split('T')[0] || "";
-        // let mapelString = teacherData.tanggal_mulai_kerja?.toDate().toLocaleDateString('id-ID') || "N/A";
 
         setUserData({
           fullName: teacherData.nama_lengkap || "Tanpa Nama",
@@ -94,7 +88,6 @@ export default function GuruProfilePage() {
 
   }, [authUser, authLoading]);
 
-  // Tampilkan loading screen gabungan
   if (loading || authLoading || !userData) {
     return (
       <div className="py-2 px-6 h-screen flex justify-center items-center">
@@ -103,13 +96,11 @@ export default function GuruProfilePage() {
     );
   }
 
-  // --- JSX (Read-Only) ---
   return (
     <div className="py-2 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
-          {/* === KOLOM KIRI (PROFIL SISI) === */}
           <div className="md:col-span-1">
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <div className="relative w-48 h-48 mx-auto mb-6">
@@ -118,14 +109,11 @@ export default function GuruProfilePage() {
               <div className="text-center">
                 <h1 className="text-2xl font-bold mb-2">{userData.fullName}</h1>
                 <p className="text-gray-600 mb-4">NIP: {userData.nip}</p>
-                {/* Tombol dihapus */}
               </div>
             </div>
           </div>
 
-          {/* === KOLOM KANAN (DETAIL) === */}
           <div className="md:col-span-2 space-y-8">
-            {/* --- KARTU PROFIL GURU --- */}
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                 <FiUser /> Profil Guru
@@ -136,7 +124,6 @@ export default function GuruProfilePage() {
               </div>
             </div>
 
-            {/* --- KARTU DETAIL PERSONAL (Read-Only) --- */} 
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                 <FiHome /> Detail Personal

@@ -4,10 +4,9 @@ import React, { useState, useEffect } from "react";
 import { FiEdit2, FiKey, FiUser, FiHome } from "react-icons/fi";
 import Image from "next/image";
 import { doc, getDoc, DocumentReference } from "firebase/firestore";
-import { db } from "@/lib/firebaseConfig"; // <-- Impor db
-import { useAuth } from "@/context/authContext"; // <-- 1. IMPOR useAuth (Pastikan path ini benar)
+import { db } from "@/lib/firebaseConfig"; 
+import { useAuth } from "@/context/authContext";
 
-// Definisikan interface UserData
 interface UserData {
   statusSiswa: string;
   waliKelas: string;
@@ -19,7 +18,7 @@ interface UserData {
   email: string;
   phone: string;
   agama: string;
-  dob: string; // <-- Ini harus string (YYYY-MM-DD)
+  dob: string; 
   gender: string;
   alamat: {
     jalan: string;
@@ -37,10 +36,8 @@ const UserProfile = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   
-  // 2. Dapatkan user dari hook auth
   const { user: authUser, loading: authLoading } = useAuth();
 
-  // 3. Gunakan useEffect untuk mengambil data
   useEffect(() => {
     if (authLoading || !authUser) {
       return;
@@ -54,7 +51,6 @@ const UserProfile = () => {
     const fetchProfileData = async (uid: string) => {
       try {
         setLoading(true);
-        // --- 1. Ambil Dokumen Siswa ---
         const studentDocRef = doc(db, "students", uid);
         const studentSnap = await getDoc(studentDocRef);
 
@@ -65,16 +61,11 @@ const UserProfile = () => {
 
         const studentData = studentSnap.data();
 
-        // --- !! KODE PERBAIKAN DI SINI !! ---
-        // Konversi Firebase Timestamp ke string YYYY-MM-DD
         let dobString = ""; 
         if (studentData.tanggal_lahir && typeof studentData.tanggal_lahir.toDate === 'function') {
           const date = studentData.tanggal_lahir.toDate();
-          dobString = date.toISOString().split('T')[0]; // Format: "2010-05-20"
+          dobString = date.toISOString().split('T')[0]; 
         }
-        // --- AKHIR KODE PERBAIKAN ---
-
-        // --- 2. Ambil Dokumen Kelas ---
         let kelasName = "Belum ada kelas";
         let waliKelasName = "Belum ada wali";
         const kelasRef = studentData.kelas_ref; 
@@ -85,7 +76,6 @@ const UserProfile = () => {
             const kelasData = kelasSnap.data();
             kelasName = kelasData.nama_kelas || "Nama Kelas?"; 
 
-            // --- 3. Ambil Dokumen Wali Kelas ---
             const waliRef = kelasData.wali_kelas_ref;
             if (waliRef && waliRef instanceof DocumentReference) {
               const waliSnap = await getDoc(waliRef);
@@ -95,15 +85,13 @@ const UserProfile = () => {
             }
           }
         }
-
-        // --- 4. Update State dengan data live ---
         setUserData({
           fullName: studentData.nama_lengkap || "Tanpa Nama",
           nisn: studentData.nisn || "Tanpa NISN",
           email: studentData.email || "Tanpa Email",
           phone: studentData.nomor_hp || "Tanpa No. HP",
           agama: studentData.agama || "Tanpa Agama",
-          dob: dobString, // <-- Gunakan string yang sudah diformat
+          dob: dobString, 
           gender: studentData.jenis_kelamin || "Laki-laki", 
           
           alamat: {
@@ -118,8 +106,8 @@ const UserProfile = () => {
           kelas: kelasName,
           waliKelas: waliKelasName,
           
-          statusSiswa: "Aktif", // Hardcoded
-          semesterAktif: "Ganjil 2025/2026", // Hardcoded
+          statusSiswa: "Aktif", 
+          semesterAktif: "Ganjil 2025/2026", 
           tahunMasuk: studentData.tahun_masuk || "2023", 
         });
 
@@ -139,7 +127,6 @@ const UserProfile = () => {
   }, [authUser, authLoading]);
 
   
-  // --- Fungsi-fungsi Handler ---
   
   const handleEdit = () => { setIsEditing(!isEditing); };
   
@@ -147,7 +134,6 @@ const UserProfile = () => {
     e.preventDefault();
     setIsEditing(false);
     console.log("Data diperbarui:", userData);
-    // TODO: Tambahkan logika updateDoc() ke Firebase di sini
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -170,7 +156,6 @@ const UserProfile = () => {
     }
   };
 
-  // Tampilkan loading screen gabungan
   if (loading || authLoading || !userData) {
     return (
       <div className="py-2 px-6 h-screen flex justify-center items-center">
@@ -179,13 +164,11 @@ const UserProfile = () => {
     );
   }
 
-  // --- Return JSX ---
   return (
     <div className="py-2 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
-          {/* === KOLOM KIRI (PROFIL SISI) === */}
           <div className="md:col-span-1">
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <div className="relative w-48 h-48 mx-auto mb-6">
@@ -201,17 +184,11 @@ const UserProfile = () => {
                 <h1 className="text-2xl font-bold mb-2">{userData.fullName}</h1>
                 <p className="text-gray-600 mb-4">NISN: {userData.nisn}</p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
-                  {/* <button className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
-                    <FiKey /> Ubah Password
-                  </button> */}
                 </div>
               </div>
             </div>
           </div>
-
-          {/* === KOLOM KANAN (DETAIL) === */}
           <div className="md:col-span-2 space-y-8">
-            {/* --- KARTU PROFIL SISWA --- */}
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                 <FiUser /> Profil Siswa
@@ -225,7 +202,6 @@ const UserProfile = () => {
               </div>
             </div>
 
-            {/* --- KARTU DETAIL PERSONAL --- */}
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                 <FiHome /> Detail Personal
@@ -250,7 +226,6 @@ const UserProfile = () => {
                   </div>
                 </div>
 
-                {/* Data Alamat (Sesuai DB) */}
                 <div className="pt-4 border-t border-gray-200">
                   <h3 className="text-lg font-medium text-gray-800 mb-4">Alamat Lengkap</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -263,7 +238,6 @@ const UserProfile = () => {
                   </div>
                 </div>
 
-                {/* Tombol Simpan */}
                 {isEditing && (
                   <div className="mt-6 flex justify-end gap-4">
                     {/* ... (tombol) ... */}
@@ -278,7 +252,6 @@ const UserProfile = () => {
   );
 };
 
-// --- Komponen Helper ---
 
 const InfoItem = ({ label, value }: { label: string, value: string }) => (
   <div>

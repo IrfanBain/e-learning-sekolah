@@ -1,11 +1,10 @@
-// TEMPORARY DATA
 
 export let role = "admin";
 
-export interface InboxMessage { // Export interface
+export interface InboxMessage {
   id: string;
   sender: {
-    avatar: string; // Tetap string untuk URL
+    avatar: string; 
     name: string;
   };
   subject: string;
@@ -13,10 +12,10 @@ export interface InboxMessage { // Export interface
   body: string; 
   timestamp: string;
   isRead: boolean;
-  detail?: string; // Opsional jika masih dipakai
+  detail?: string; 
 }
 
-export const dummyMessages: InboxMessage[] = [ // Export data
+export const dummyMessages: InboxMessage[] = [ 
   {
     id: "1",
     sender: { name: "Siti Aminah (Wali Kelas)", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3" },

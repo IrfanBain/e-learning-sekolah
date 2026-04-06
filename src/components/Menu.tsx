@@ -14,11 +14,11 @@ import {
   ClipboardList, 
   MessageSquare, 
   Award, 
-  Megaphone, // Pastikan ini ada warnanya (ter-import)
+  Megaphone, 
   LogOut, 
   Settings,
   UserCog,
-  Volume2, // Alternatif kalau Megaphone rusak
+  Volume2, 
   CalendarCheck
 } from 'lucide-react';
 
@@ -63,12 +63,6 @@ const menuItems = [
         href: "/list/schedules",
         visible: ["admin"],
       },
-      // {
-      //   icon: FileText,
-      //   label: "Ujian",
-      //   getHref: (role: string) => `/${role}/examsPage`, 
-      //   visible: ["admin", "teacher", "student"],
-      // },
 
       {
         icon: FileText,
@@ -106,7 +100,7 @@ const menuItems = [
         visible: ["admin", "teacher", "student"],
       },
       {
-        icon: Megaphone, // Kalau masih tidak muncul, ganti jadi "Volume2"
+        icon: Megaphone, 
         label: "Pengumuman",
         href: "/list/announcements",
         visible: ["admin", "teacher", "student"],
@@ -177,17 +171,13 @@ const Menu = () => {
               finalHref = item.getHref(currentRole);
             }
 
-            // --- PERBAIKAN LOGIKA ACTIVE STATE ---
             let isActive = false;
             
             if ((item as any).exactMatch) {
-              // Jika exactMatch: true, URL harus sama persis
               isActive = pathname === finalHref;
             } else {
-              // Jika tidak, pakai logika 'dimulai dengan' (biar sub-menu tetap aktif)
               isActive = pathname === finalHref || (finalHref !== '/' && pathname.startsWith(finalHref));
             }
-            // -------------------------------------
 
             if ((item as any).isLogout) {
               return (

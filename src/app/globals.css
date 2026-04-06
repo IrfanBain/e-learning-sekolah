@@ -116,18 +116,10 @@
   color: red !important;
 }
 
-/* Di dalam file globals.css */
-/* HAPUS SEMUA KODE CSS KALENDER LAMA DAN GANTI DENGAN INI */
-
-
-/* --- MENYEMBUNYIKAN KOLOM MINGGU (KOLOM KE-7) --- */
-
-/* 1. Sembunyikan header hari Minggu */
 .rbc-time-header-content .rbc-header:nth-child(8) {
   display: none !important;
 }
 
-/* 2. Sembunyikan kolom konten hari Minggu (menggunakan kelas dari Anda) */
 .rbc-time-content .rbc-time-column:nth-child(8) {
   display: none !important;
 }
@@ -138,5 +130,5 @@
 }
 
 .animate-fade-in-out {
-  animation: fadeInOut 2s ease-in-out forwards; /* Durasi animasi sama dengan timeout */
+  animation: fadeInOut 2s ease-in-out forwards;
 }

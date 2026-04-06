@@ -1,20 +1,16 @@
-// app/maintenance/page.tsx
-
 import React from 'react';
-import Head from 'next/head'; // Untuk mengatur meta tags jika diperlukan
+import Head from 'next/head'; 
 
 export default function MaintenancePage() {
   return (
     <>
       <Head>
         <title>Situs Sedang Perbaikan......</title>
-        <meta name="robots" content="noindex, nofollow" /> {/* Penting untuk SEO */}
+        <meta name="robots" content="noindex, nofollow" /> 
       </Head>
       <div className="min-h-screen bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center transform hover:scale-105 transition-transform duration-300 ease-in-out">
-          {/* Ikon atau Ilustrasi */}
           <div className="mb-6">
-            {/* Anda bisa ganti dengan ikon SVG atau gambar */}
             <svg
               className="mx-auto h-24 w-24 text-blue-600 animate-bounce"
               fill="none"

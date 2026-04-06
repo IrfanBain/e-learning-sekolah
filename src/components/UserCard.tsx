@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebaseConfig"; // Pastikan path ini benar
+import { db } from "@/lib/firebaseConfig"; 
 
 const UserCard = ({ type }: { type: string }) => {
   const [count, setCount] = useState(0);
@@ -25,7 +25,7 @@ const UserCard = ({ type }: { type: string }) => {
         } else if (lowerType === "guru") {
           collectionRef = collection(db, "teachers");
           q = query(collectionRef);
-        } else if (lowerType === "kelas") { // <-- INI TAMBAHANNYA
+        } else if (lowerType === "kelas") { 
           collectionRef = collection(db, "classes");
           q = query(collectionRef);
         } else {
@@ -53,7 +53,6 @@ const UserCard = ({ type }: { type: string }) => {
         <span className="text-[10px] bg-white px-2 py-1 rounded-full text-green-600">
           2025/2026
         </span>
-        {/* <Image src="/more.png" alt="" width={20} height={20} /> */}
       </div>
 
       <h1 className="text-2xl font-semibold my-4">

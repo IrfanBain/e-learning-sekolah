@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Link from 'next/link'; // Pastikan Link di-import
+import Link from 'next/link'; 
 import Image from 'next/image';
 import { db } from '@/lib/firebaseConfig'; 
-import { collection, getDocs, query, orderBy, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'; // Impor tipe Firestore
+import { collection, getDocs, query, orderBy, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'; 
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/context/authContext';
 
@@ -18,10 +18,8 @@ import {
   FiFilter
 } from 'react-icons/fi';
 
-// 1. Impor Action
 import { deleteStudentAction } from '@/app/actions/studentActions';
 
-// 2. Tipe Data (Sama seperti sebelumnya)
 interface StudentData {
   id: string;
   nama_lengkap: string;
@@ -47,19 +45,14 @@ interface StudentData {
   };
 }
 
-// 3. Komponen Utama Halaman
 export default function ManageStudentsPage() {
   const { user: currentUser } = useAuth(); 
-
   const [allStudents, setAllStudents] = useState<StudentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // State Filter (Sama)
   const [searchQuery, setSearchQuery] = useState("");
   const [filterKelas, setFilterKelas] = useState("Semua Kelas");
 
-  // Fungsi Fetching Data (Sama)
   const fetchStudents = async () => {
     try {
       setLoading(true);
@@ -90,8 +83,6 @@ export default function ManageStudentsPage() {
   useEffect(() => {
     fetchStudents();
   }, []); 
-
-  // --- Logika Filter (Sama) ---
   const uniqueClasses = useMemo(() => {
     return Array.from(new Set(allStudents.map(s => s.kelas).filter(Boolean)))
             .sort() as string[];
@@ -106,7 +97,6 @@ export default function ManageStudentsPage() {
     );
   }, [allStudents, searchQuery, filterKelas]);
 
-  // --- Handler CRUD (Hanya Delete) ---
   const handleDeleteStudent = (studentId: string, studentName: string) => {
     toast((t) => (
       <div className="flex flex-col gap-3 p-2">
@@ -131,7 +121,7 @@ export default function ManageStudentsPage() {
       loading: `Menghapus ${studentName}...`,
       success: (result) => {
         if (result.success) {
-          fetchStudents(); // REFRESH
+          fetchStudents(); 
           return result.message;
         } else {
           throw new Error(result.message);
@@ -141,7 +131,6 @@ export default function ManageStudentsPage() {
     });
   };
 
-  // --- Mulai JSX ---
   return (
     <div className="p-4 md:p-8 relative"> 
       <h2 className="text-2xl font-semibold mb-5">Semua Murid</h2>
@@ -154,10 +143,8 @@ export default function ManageStudentsPage() {
 
       <div className="bg-white rounded-lg shadow-md">
         
-        {/* Header Kartu: Filter, Search, dan Aksi */}
         <div className="flex flex-col md:flex-row justify-between items-center p-4 border-b border-gray-200 gap-4">
           
-          {/* Filter Dropdown (Sama) */}
           <div className="flex gap-2 w-full md:w-auto">
             <div className="relative flex-grow">
               <select 
@@ -174,7 +161,6 @@ export default function ManageStudentsPage() {
             </div>
           </div>
 
-          {/* Search & Tombol Aksi (Sama) */}
           <div className="flex w-full md:w-auto gap-2">
             <div className="relative flex-grow">
               <input
@@ -187,10 +173,9 @@ export default function ManageStudentsPage() {
               <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             </div>
             
-            {/* Tombol Tambah Siswa (DIUBAH JADI LINK) */}
             {currentUser?.role === 'admin' && (
               <Link 
-              href="/list/students/create" // <-- ROUTE BARU
+              href="/list/students/create" 
               className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
             >
               <FiPlus className="w-4 h-4" />
@@ -199,7 +184,6 @@ export default function ManageStudentsPage() {
           </div>
         </div>
         
-        {/* Tabel Konten (Sama) */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -215,7 +199,6 @@ export default function ManageStudentsPage() {
               {filteredStudents.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   
-                  {/* Kolom Info (Sama) */}
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
@@ -244,7 +227,6 @@ export default function ManageStudentsPage() {
                   
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{item.jenis_kelamin || '-'}</td>
                   
-                  {/* Kolom Aksi (Tombol Edit DIUBAH JADI LINK) */}
                   <td className="px-6 py-4 whitespace-nowGrap text-sm font-medium">
                     <div className="flex gap-3">
                       <Link 
@@ -257,7 +239,7 @@ export default function ManageStudentsPage() {
 
                       {currentUser?.role === 'admin' && (
                         <Link 
-                        href={`/list/students/edit/${item.id}`} // <-- ROUTE EDIT BARU
+                        href={`/list/students/edit/${item.id}`} 
                         className="text-purple-500 hover:text-purple-700 p-2 bg-purple-50 rounded-lg" 
                         title="Edit"
                       >

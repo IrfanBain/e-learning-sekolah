@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-// --- MODIFIKASI 1: Impor 'useParams' ---
 import { useRouter, useParams } from 'next/navigation'; 
 import { useAuth } from '@/context/authContext';
 import { db } from '@/lib/firebaseConfig';
 import { type User as AuthUser } from 'firebase/auth';
-// ... (sisa impor tidak berubah) ...
 import {
     collection,
     query,
@@ -27,11 +25,10 @@ import {
     ListChecks,
     FileText,
     ListFilter,
-    ArrowLeft // <-- BARU: Impor ArrowLeft
+    ArrowLeft
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// --- (Tipe GradeItem tidak berubah) ---
 type GradeItem = {
     id: string; 
     judulTugas: string;
@@ -43,7 +40,6 @@ type GradeItem = {
     mapelNama: string;
 };
 
-// --- (Helper getRefName tidak berubah) ---
 const getRefName = async (ref: DocumentReference, fieldName: string): Promise<string> => {
     try {
         const docSnap = await getDoc(ref);
@@ -54,13 +50,11 @@ const getRefName = async (ref: DocumentReference, fieldName: string): Promise<st
     return "N/A";
 };
 
-// --- KOMPONEN UTAMA ---
-const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
-    // --- MODIFIKASI 2: Dapatkan ID siswa dari URL ---
+const TeacherStudentGradesPage = () => { 
     const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
-    const params = useParams(); // <-- BARU
-    const router = useRouter(); // <-- BARU
-    const studentId = params.studentId as string; // <-- BARU: Ambil ID siswa dari URL
+    const params = useParams(); 
+    const router = useRouter(); 
+    const studentId = params.studentId as string; 
 
     const [allGrades, setAllGrades] = useState<GradeItem[]>([]);
     const [studentName, setStudentName] = useState<string>("");
@@ -74,7 +68,6 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
     const mapelCache = React.useRef(new Map<string, string>());
 
     const getCachedMapelName = useCallback(async (mapelRef: DocumentReference) => {
-        // ... (tidak berubah)
         const mapelId = mapelRef.id;
         let mapelNama = mapelCache.current.get(mapelId);
         if (!mapelNama) {
@@ -84,13 +77,11 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
         return { mapelId, mapelNama };
     }, []);
 
-    // --- MODIFIKASI 3: Ubah 'userUid' menjadi 'studentId' ---
-    const fetchAllGrades = useCallback(async (targetStudentId: string) => { // <-- Terima ID siswa
+    const fetchAllGrades = useCallback(async (targetStudentId: string) => { 
         setLoading(true);
         setError(null);
         
         try {
-            // --- Gunakan 'targetStudentId' ---
             const studentRef = doc(db, "students", targetStudentId); 
             const studentSnap = await getDoc(studentRef);
             if (!studentSnap.exists()) {
@@ -98,7 +89,6 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
             }
             setStudentName(studentSnap.data()?.nama_lengkap || "Siswa");
 
-            // (Sisa query di bawah ini sudah benar karena menggunakan 'studentRef')
             const answersQuery = query(
                 collection(db, "student's_answer"),
                 where("student_ref", "==", studentRef),
@@ -110,7 +100,6 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
                 where("student_ref", "==", studentRef)
             );
 
-            // ... (sisa fungsi fetchAllGrades tidak berubah) ...
             const [answersSnapshot, hwSnapshot] = await Promise.all([
                 getDocs(answersQuery),
                 getDocs(hwQuery)
@@ -136,7 +125,7 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
                 if (tipe === "Latihan PG") {
                     skor = data.nilai_akhir ?? 0;
                     status = "Dinilai";
-                } else { // Esai
+                } else { 
                     skor = data.nilai_esai ?? null;
                     status = (skor !== null) ? "Dinilai" : "Menunggu Penilaian";
                 }
@@ -194,20 +183,16 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
         }
     }, [getCachedMapelName]);
 
-    // --- MODIFIKASI 4: Ubah cara pemanggilan useEffect ---
     useEffect(() => {
-        // 'user' di sini adalah GURU. Kita cek apakah guru sudah login.
-        // 'studentId' adalah ID siswa yang ingin dilihat nilainya.
         if (user?.uid && !authLoading && studentId) {
-            fetchAllGrades(studentId); // Panggil fetch dengan ID siswa dari URL
+            fetchAllGrades(studentId); 
         }
         if (!user && !authLoading) {
              setLoading(false);
              setError("Harap login sebagai guru untuk melihat halaman ini.");
         }
-    }, [user, authLoading, studentId, fetchAllGrades]); // <-- Tambah studentId
+    }, [user, authLoading, studentId, fetchAllGrades]); 
 
-    // (Memo filter tidak berubah)
     const filteredGrades = useMemo(() => {
         if (filterTipe === "semua") {
             return allGrades;
@@ -221,7 +206,6 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
         return allGrades;
     }, [allGrades, filterTipe]);
 
-    // (Komponen FilterButton tidak berubah)
     const FilterButton = ({ type, label }: { type: FilterType, label: string }) => {
         const isActive = filterTipe === type;
         return (
@@ -239,7 +223,6 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
     };
 
     if (loading || authLoading) {
-        // ... (render loading tidak berubah)
         return (
             <div className="flex justify-center items-center h-[80vh] bg-gray-50">
                 <Loader2 className="w-12 h-12 animate-spin text-blue-600" />
@@ -248,18 +231,15 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
         );
     }
 
-    // --- MODIFIKASI 5: Tambahkan tombol Kembali ---
     return (
         <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
-            {/* --- TOMBOL KEMBALI --- */}
             <button 
-                onClick={() => router.back()} // Kembali ke daftar siswa
+                onClick={() => router.back()} 
                 className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4 font-medium">
                 <ArrowLeft className="w-5 h-5" />
                 Kembali ke Daftar Siswa
             </button>
             
-            {/* --- Judul diubah --- */}
             <h1 className="text-2xl font-bold text-gray-800">Rekap Nilai Siswa</h1>
             <p className="text-base text-gray-600 mt-1">
                 Menampilkan semua nilai untuk <span className="font-semibold text-blue-600">{studentName || 'Siswa'}</span>.
@@ -272,7 +252,6 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
                 </div>
             )}
             
-            {/* --- Kontainer Filter dan Tabel (TIDAK BERUBAH) --- */}
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100 mt-6">
                 
                 <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -322,7 +301,6 @@ const TeacherStudentGradesPage = () => { // <-- Ubah nama komponen
     );
 };
 
-// --- (Komponen GradeTableRow tidak berubah) ---
 const GradeTableRow = ({ item }: { item: GradeItem }) => {
     
     const getIcon = () => {
@@ -355,15 +333,12 @@ const GradeTableRow = ({ item }: { item: GradeItem }) => {
                     </div>
                 </div>
             </td>
-            {/* Mata Pelajaran */}
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                 {item.mapelNama}
             </td>
-            {/* Tipe */}
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                 {item.tipe}
             </td>
-            {/* Status */}
             <td className="px-6 py-4 whitespace-nowrap">
                 {item.status === "Dinilai" ? (
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
@@ -375,7 +350,6 @@ const GradeTableRow = ({ item }: { item: GradeItem }) => {
                     </span>
                 )}
             </td>
-            {/* Skor */}
             <td className="px-6 py-4 whitespace-nowrap">
                 {item.status === "Dinilai" ? (
                     <span className={`text-xl font-bold ${getScoreColor(item.skor)}`}>
@@ -389,4 +363,4 @@ const GradeTableRow = ({ item }: { item: GradeItem }) => {
     );
 };
 
-export default TeacherStudentGradesPage; // <-- Ubah nama komponen
+export default TeacherStudentGradesPage; 

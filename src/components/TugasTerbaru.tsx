@@ -2,13 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
-import { db } from "@/lib/firebaseConfig"; // <-- Sesuaikan path ke firebase Anda
+import { db } from "@/lib/firebaseConfig"; 
 
-// Tipe data untuk Tugas (sesuaikan jika perlu)
 interface Tugas {
   id: string;
-  judul: string; // Ganti 'judul' dengan field Anda
-  tanggal_dibuat?: string; // Field opsional, ganti dengan field Anda
+  judul: string; 
+  tanggal_dibuat?: string;
 }
 
 const TugasTerbaru = () => {
@@ -19,19 +18,17 @@ const TugasTerbaru = () => {
     const fetchTugas = async () => {
       try {
         const homeworkCol = collection(db, "homework");
-        // Asumsi diurutkan berdasarkan 'tanggal_dibuat'
-        // GANTI 'tanggal_dibuat' dengan field timestamp Anda
         const q = query(
           homeworkCol,
-          orderBy("tanggal_dibuat", "desc"), // 'desc' = terbaru dulu
-          limit(3) // Ambil 3 saja
+          orderBy("tanggal_dibuat", "desc"), 
+          limit(3) 
         );
 
         const snapshot = await getDocs(q);
         const tugasList: Tugas[] = snapshot.docs.map(doc => ({
           id: doc.id,
           judul: doc.data().judul || "Tanpa Judul",
-          tanggal_dibuat: doc.data().tanggal_dibuat?.toDate().toLocaleDateString("id-ID") // Contoh format tanggal
+          tanggal_dibuat: doc.data().tanggal_dibuat?.toDate().toLocaleDateString("id-ID") 
         }));
         
         setTugas(tugasList);
@@ -53,10 +50,8 @@ const TugasTerbaru = () => {
     <div className="p-4 bg-white rounded-lg shadow mb-4">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-lg font-semibold">Tugas PR Baru Ditambahkan</h2>
-        {/* <span className="text-sm text-blue-500 cursor-pointer">Lihat Semua</span> */}
       </div>
       
-      {/* Daftar Tugas */}
       <div className="space-y-3">
         {tugas.length > 0 ? (
           tugas.map((item) => (

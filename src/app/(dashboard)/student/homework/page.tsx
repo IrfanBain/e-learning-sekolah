@@ -21,16 +21,14 @@ import {
     ArrowRight,
     History,
     BookOpenCheck,
-    AlertTriangle, // Ikon peringatan
-    Lock // Ikon terkunci
+    AlertTriangle, 
+    Lock 
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 
-// --- KONSTANTA ---
-const TOLERANSI_JAM = 24; // Pastikan sama dengan di halaman detail
+const TOLERANSI_JAM = 24; 
 
-// --- DEFINISI TIPE ---
 
 interface StudentData {
     nama_lengkap: string;
@@ -44,7 +42,6 @@ interface HomeworkData {
     guru_ref: DocumentReference;
     tanggal_selesai: Timestamp;
     status: "Dipublikasi" | "Ditutup" | "Draft";
-    // Data tambahan
     mapelNama?: string;
     guruNama?: string;
 }
@@ -56,14 +53,11 @@ interface SubmissionData {
     status_pengumpulan: string; 
 }
 
-// Tipe data gabungan untuk UI
 type MergedHomeworkData = HomeworkData & {
     submission?: SubmissionData;
-    // Status UI yang lebih detail
     uiStatus?: "Tersedia" | "TerlambatBisa" | "Terkunci" | "Selesai" | "DitutupGuru";
 };
 
-// Helper
 const getRefName = async (ref: DocumentReference, fieldName: string) => {
     try {
         const docSnap = await getDoc(ref);
@@ -75,7 +69,6 @@ const getRefName = async (ref: DocumentReference, fieldName: string) => {
 };
 
 
-// --- KOMPONEN UTAMA ---
 const StudentHomeworkPage = () => {
     const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
     
@@ -90,7 +83,6 @@ const StudentHomeworkPage = () => {
         setError(null);
         
         try {
-            // 1. Dapatkan data siswa dan kelasnya
             const studentRef = doc(db, "students", userUid);
             const studentSnap = await getDoc(studentRef);
             if (!studentSnap.exists()) throw new Error("Data siswa tidak ditemukan.");
@@ -99,15 +91,12 @@ const StudentHomeworkPage = () => {
             const kelasRef = studentData.kelas_ref;
             setStudentName(studentData.nama_lengkap);
 
-            // 2. Query PR untuk kelas siswa
-            // Kita ambil status "Dipublikasi" DAN "Ditutup" (agar siswa bisa lihat histori nilai meski ditutup)
             const hwQuery = query(
                 collection(db, "homework"),
                 where("kelas_ref", "==", kelasRef),
                 where("status", "in", ["Dipublikasi", "Ditutup"])
             );
 
-            // 3. Query semua pengumpulan PR oleh siswa ini
             const submissionsQuery = query(
                 collection(db, "homework_submissions"),
                 where("student_ref", "==", studentRef)
@@ -118,14 +107,12 @@ const StudentHomeworkPage = () => {
                 getDocs(submissionsQuery)
             ]);
 
-            // 4. Map Submissions
             const submissionMap = new Map<string, SubmissionData>();
             submissionsSnapshot.docs.forEach(subDoc => {
                 const subData = subDoc.data() as Omit<SubmissionData, 'id'>;
                 submissionMap.set(subData.homework_ref.id, { ...subData, id: subDoc.id });
             });
 
-            // 5. Proses Logika Status
             const now = new Date();
             
             const hwPromises = hwSnapshot.docs.map(async (hwDoc) => {
@@ -137,19 +124,17 @@ const StudentHomeworkPage = () => {
                 let mergedData: MergedHomeworkData = { ...hwData };
 
                 if (submission) {
-                    // KASUS 1: SUDAH MENGUMPULKAN (atau Dinilai Manual)
                     mergedData.submission = submission;
                     mergedData.uiStatus = "Selesai";
                 } else {
-                    // KASUS 2: BELUM MENGUMPULKAN
                     if (hwData.status === 'Ditutup') {
                         mergedData.uiStatus = "DitutupGuru";
                     } else if (now > lockDate) {
-                        mergedData.uiStatus = "Terkunci"; // Lewat toleransi
+                        mergedData.uiStatus = "Terkunci"; 
                     } else if (now > deadline) {
-                        mergedData.uiStatus = "TerlambatBisa"; // Masih toleransi
+                        mergedData.uiStatus = "TerlambatBisa"; 
                     } else {
-                        mergedData.uiStatus = "Tersedia"; // Normal
+                        mergedData.uiStatus = "Tersedia"; 
                     }
                 }
 
@@ -165,21 +150,16 @@ const StudentHomeworkPage = () => {
 
             const allMergedHomeworks = await Promise.all(hwPromises);
 
-            // 6. Pisahkan List
             const todoList: MergedHomeworkData[] = [];
             const completedList: MergedHomeworkData[] = [];
 
             allMergedHomeworks.forEach(hw => {
-                // Masukkan ke TODO jika masih bisa dikerjakan (Tersedia / TerlambatBisa)
                 if (hw.uiStatus === "Tersedia" || hw.uiStatus === "TerlambatBisa") {
                     todoList.push(hw);
                 } else {
-                    // Masukkan ke Completed jika Selesai, Terkunci, atau Ditutup Guru
                     completedList.push(hw);
                 }
             });
-            
-            // Sortir
             setTodoHomework(todoList.sort((a, b) => a.tanggal_selesai.toMillis() - b.tanggal_selesai.toMillis())); 
             setCompletedHomework(completedList.sort((a, b) => b.tanggal_selesai.toMillis() - a.tanggal_selesai.toMillis())); 
 
@@ -213,7 +193,6 @@ const StudentHomeworkPage = () => {
 
             {error && <div className="bg-red-100 text-red-700 p-4 my-6 rounded-md">{error}</div>}
 
-            {/* PR Tersedia (Termasuk yang Terlambat tapi masih Toleransi) */}
             <section className="mt-6"> 
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-3 mb-4">
                     <BookOpenCheck className="w-6 h-6 text-blue-600" /> 
@@ -231,7 +210,6 @@ const StudentHomeworkPage = () => {
                 </div>
             </section>
 
-             {/* Riwayat PR (Selesai / Terkunci / Ditutup) */}
             <section className="mt-8"> 
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-3 mb-4">
                     <History className="w-6 h-6 text-gray-600" /> 
@@ -250,13 +228,11 @@ const StudentHomeworkPage = () => {
     );
 };
 
-// --- KOMPONEN KARTU PR ---
 const HomeworkCard = ({ hw }: { hw: MergedHomeworkData }) => {
     const deadline = hw.tanggal_selesai.toDate().toLocaleString('id-ID', {
         day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 
-    // Hitung sisa jam toleransi untuk display
     const now = new Date();
     const deadlineDate = hw.tanggal_selesai.toDate();
     const lockDate = new Date(deadlineDate.getTime() + (TOLERANSI_JAM * 60 * 60 * 1000));
@@ -382,7 +358,6 @@ const HomeworkCard = ({ hw }: { hw: MergedHomeworkData }) => {
     );
 };
 
-// --- KOMPONEN TIMER HITUNG MUNDUR ---
 const CountdownTimer = ({ targetDate }: { targetDate: Date }) => {
     const [timeLeft, setTimeLeft] = useState<string>("");
 
@@ -395,20 +370,16 @@ const CountdownTimer = ({ targetDate }: { targetDate: Date }) => {
                 setTimeLeft("Waktu Habis");
                 return;
             }
-
-            // Hitung jam, menit, detik
             const hours = Math.floor(diff / (1000 * 60 * 60));
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-            // Format string: "23j 59m 10d"
             setTimeLeft(`${hours}jam ${minutes}menit`);
         };
 
-        updateTimer(); // Jalan langsung saat mount
-        const interval = setInterval(updateTimer, 1000); // Update tiap 1 detik
+        updateTimer(); 
+        const interval = setInterval(updateTimer, 1000); 
 
-        return () => clearInterval(interval); // Bersihkan timer saat unmount
+        return () => clearInterval(interval); 
     }, [targetDate]);
 
     return <span className="font-mono font-bold tabular-nums">{timeLeft}</span>;

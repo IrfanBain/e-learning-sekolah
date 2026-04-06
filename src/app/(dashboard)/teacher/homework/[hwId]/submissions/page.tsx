@@ -34,7 +34,6 @@ import autoTable from 'jspdf-autotable';
 
 
 const TOLERANSI_JAM = 24;
-// --- DEFINISI TIPE ---
 
 interface HomeworkData {
     judul: string;
@@ -69,27 +68,22 @@ type MergedStudentData = {
 }
 
 const HomeworkSubmissionsPage = () => {
-    const { user, loading: authLoading } = useAuth(); // Ambil status loading auth
+    const { user, loading: authLoading } = useAuth(); 
     const params = useParams();
     const router = useRouter();
     const hwId = params.hwId as string;
-
     const [homework, setHomework] = useState<HomeworkData | null>(null);
     const [mergedData, setMergedData] = useState<MergedStudentData[]>([]);
-    
-    // Default loading true
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchSubmissionsData = useCallback(async () => {
-        // Jangan jalan jika user/hwId belum ada
         if (!user || !hwId) return;
 
         setLoading(true);
         setError(null);
 
         try {
-            // 1. Ambil data PR (Induk)
             const hwRef = doc(db, "homework", hwId);
             const hwSnap = await getDoc(hwRef);
             if (!hwSnap.exists()) {
@@ -98,15 +92,12 @@ const HomeworkSubmissionsPage = () => {
             const hwData = hwSnap.data() as HomeworkData;
             setHomework(hwData);
 
-            // 2. Ambil SEMUA siswa di kelas yang ditargetkan PR
-            // PENTING: Jika query ini gagal, kemungkinan butuh INDEX Firestore
             const studentsQuery = query(
                 collection(db, "students"),
                 where("kelas_ref", "==", hwData.kelas_ref),
                 orderBy("nama_lengkap", "asc")
             );
 
-            // 3. Ambil SEMUA pengumpulan untuk PR ini
             const submissionsQuery = query(
                 collection(db, "homework_submissions"),
                 where("homework_ref", "==", hwRef)
@@ -117,14 +108,12 @@ const HomeworkSubmissionsPage = () => {
                 getDocs(submissionsQuery)
             ]);
 
-            // 4. Proses data pengumpulan ke dalam Map
             const submissionMap = new Map<string, SubmissionData>();
             submissionsSnapshot.docs.forEach(subDoc => {
                 const subData = subDoc.data() as SubmissionData;
                 submissionMap.set(subData.student_ref.id, { ...subData, id: subDoc.id });
             });
 
-            // 5. Gabungkan data
             const mergedList: MergedStudentData[] = studentsSnapshot.docs.map(studentDoc => {
                 const student = { ...studentDoc.data(), id: studentDoc.id } as StudentData;
                 const submission = submissionMap.get(student.id) || null;
@@ -155,20 +144,17 @@ const HomeworkSubmissionsPage = () => {
         }
     }, [hwId, user]);
 
-    // Effect Utama
     useEffect(() => {
         if (!authLoading) {
             if (user) {
                 fetchSubmissionsData();
             } else {
-                // Jika tidak login, matikan loading agar tidak muter terus
                 setLoading(false);
             }
         }
     }, [user, authLoading, fetchSubmissionsData]);
 
 
-    // 1. FUNGSI EXPORT EXCEL
     const handleExportExcel = () => {
         if (mergedData.length === 0) return;
 
@@ -190,20 +176,17 @@ const HomeworkSubmissionsPage = () => {
         XLSX.writeFile(workbook, fileName);
     };
 
-    // --- FUNGSI EXPORT PDF (PERBAIKAN) ---
     const handleExportPDF = () => {
         if (mergedData.length === 0) return;
 
-        const doc = new jsPDF(); // Tidak perlu "as jsPDFWithAutoTable" lagi
+        const doc = new jsPDF(); 
         
-        // Header PDF
         doc.setFontSize(16);
         doc.text("Rekap Pengumpulan PR", 14, 15);
         doc.setFontSize(11);
         doc.text(`Judul: ${homework?.judul || '-'}`, 14, 22);
         doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`, 14, 28);
 
-        // Siapkan Data Tabel
         const tableBody = mergedData.map((data) => [
             data.student.nama_lengkap,
             data.student.kelas,
@@ -216,7 +199,6 @@ const HomeworkSubmissionsPage = () => {
             data.submission?.nilai_tugas ?? "-"
         ]);
 
-        // Generate Tabel (Panggil fungsi autoTable secara langsung)
         autoTable(doc, {
             startY: 35,
             head: [['Nama Siswa', 'Kelas', 'Status', 'Tanggal Kumpul', 'Nilai']],
@@ -258,7 +240,7 @@ const HomeworkSubmissionsPage = () => {
     return (
         <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
             <button 
-                onClick={() => router.push('/teacher/homework')} // Sesuaikan link ini
+                onClick={() => router.push('/teacher/homework')} 
                 className="flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-4 font-medium">
                 <ArrowLeft className="w-5 h-5" />
                 Kembali ke Daftar PR
@@ -273,7 +255,6 @@ const HomeworkSubmissionsPage = () => {
             <p className="text-lg text-gray-600 mt-1">{homework?.judul}</p>
         </div>
 
-        {/* Tombol Export (Hanya muncul jika ada data) */}
         {mergedData.length > 0 && (
             <div className="flex gap-2 mt-4 md:mt-0">
                 <button
@@ -317,22 +298,17 @@ const HomeworkSubmissionsPage = () => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {mergedData.map((data) => {
-                                // 1. Siapkan data dasar
                                 const hasSubmission = !!data.submission;
                                 
-                                // 2. HITUNG LOGIKA WAKTU (Untuk Logika Tombol)
                                 const now = new Date();
                                 const deadlineDate = homework?.tanggal_selesai.toDate() || new Date();
                                 const lockDate = new Date(deadlineDate.getTime() + (TOLERANSI_JAM * 60 * 60 * 1000));
                                 
-                                // Cek apakah PR sudah terkunci total?
                                 const isHomeworkLocked = (now > lockDate) || (homework?.status === 'Ditutup');
                                 
-                                // 3. TENTUKAN TOMBOL AKSI
                                 let actionButton;
 
                                 if (hasSubmission) {
-                                    // KASUS A: Siswa SUDAH mengerjakan -> Selalu bisa dinilai
                                     actionButton = (
                                         <Link 
                                             href={`/teacher/homework/${hwId}/submissions/${data.submission?.id}?status=submitted`}
@@ -342,9 +318,7 @@ const HomeworkSubmissionsPage = () => {
                                         </Link>
                                     );
                                 } else {
-                                    // KASUS B: Siswa BELUM mengerjakan
                                     if (isHomeworkLocked) {
-                                        // KASUS B1: Waktu Habis / Ditutup -> Boleh Nilai Manual
                                         actionButton = (
                                             <Link 
                                                 href={`/teacher/homework/${hwId}/submissions/${data.student.id}?status=pending`}
@@ -354,7 +328,6 @@ const HomeworkSubmissionsPage = () => {
                                             </Link>
                                         );
                                     } else {
-                                        // KASUS B2: Masih Masa Pengerjaan -> TAHAN GURU
                                         actionButton = (
                                             <span className="text-gray-400 italic text-sm flex items-center justify-end gap-1 cursor-not-allowed" title="Siswa masih dalam masa toleransi pengerjaan">
                                                 <Clock className="w-3 h-3" /> Menunggu Siswa
@@ -365,7 +338,6 @@ const HomeworkSubmissionsPage = () => {
 
                                 return (
                                     <tr key={data.student.id} className="hover:bg-gray-50">
-                                        {/* Kolom Nama */}
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
                                                 <div className="flex-shrink-0 h-10 w-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center">
@@ -378,7 +350,6 @@ const HomeworkSubmissionsPage = () => {
                                             </div>
                                         </td>
                                         
-                                        {/* Kolom Status */}
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {data.submission ? (
                                                 <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -395,7 +366,6 @@ const HomeworkSubmissionsPage = () => {
                                             )}
                                         </td>
                                         
-                                        {/* Kolom Waktu */}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {data.submission ? 
                                                 data.submission.tanggal_pengumpulan.toDate().toLocaleString('id-ID', {
@@ -404,7 +374,6 @@ const HomeworkSubmissionsPage = () => {
                                             }
                                         </td>
                                         
-                                        {/* Kolom File */}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
                                             {data.submission?.file_jawaban ? (
                                                 <a href={data.submission.file_jawaban.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:underline">
@@ -413,12 +382,10 @@ const HomeworkSubmissionsPage = () => {
                                             ) : '-'}
                                         </td>
                                         
-                                        {/* Kolom Nilai */}
                                         <td className="px-6 py-4 whitespace-nowrap text-lg font-bold text-blue-600">
                                             {data.submission?.nilai_tugas ?? '-'}
                                         </td>
                                         
-                                        {/* Kolom Aksi (Dinamis) */}
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             {actionButton}
                                         </td>

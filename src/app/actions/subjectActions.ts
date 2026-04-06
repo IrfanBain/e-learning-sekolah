@@ -9,28 +9,21 @@ export interface ActionResult {
   message: string;
 }
 
-// 1. Interface Form Data (Disesuaikan)
 export interface SubjectFormData {
-  nama_pendek: string;     // Akan jadi Document ID (cth: "MTK")
-  nama_mapel: string;     // Cth: "Matematika"
-  kelompok: string;       // Cth: "umum"
-  kkm: number;            // Cth: 85
-  urutan: number;         // Cth: 1
-  // Untuk 'tingkat', form akan mengirim array string ["7", "8", "9"]
+  nama_pendek: string;     
+  nama_mapel: string;     
+  kelompok: string;       
+  kkm: number;            
+  urutan: number;
   tingkat: string[];
 }
 
-// 2. Interface Update Data (Disesuaikan)
-export interface SubjectUpdateFormData extends Omit<SubjectFormData, 'nama_pendek'> { // nama_pendek (ID) tidak diubah
-  id: string; // Document ID yang sudah ada (nama_pendek)
-}
+export interface SubjectUpdateFormData extends Omit<SubjectFormData, 'nama_pendek'> {  id: string; }
 
-// --- FUNGSI CREATE (TAMBAH MATA PELAJARAN) ---
 export async function createSubjectAction(formData: SubjectFormData): Promise<ActionResult> {
 
   const { nama_pendek, nama_mapel, kelompok, kkm, urutan, tingkat } = formData;
 
-  // Validasi dasar
   if (!nama_pendek || !nama_mapel || !kelompok || kkm === undefined || kkm === null || urutan === undefined || urutan === null || !tingkat || tingkat.length === 0) {
     return { success: false, message: "Semua field (kecuali deskripsi) wajib diisi." };
   }
@@ -38,32 +31,28 @@ export async function createSubjectAction(formData: SubjectFormData): Promise<Ac
   if (isNaN(urutan)) { return { success: false, message: "Urutan harus berupa angka." }; }
   if (!Array.isArray(tingkat) || tingkat.some(t => typeof t !== 'string')) { return { success: false, message: "Tingkat harus berupa kumpulan string." }; }
 
-
-  // --- Gunakan nama_pendek sebagai Document ID ---
-  const docId = nama_pendek.trim().toUpperCase().replace(/\s+/g, ''); // Cth: "mtk" -> "MTK"
+  const docId = nama_pendek.trim().toUpperCase().replace(/\s+/g, ''); 
   if (!docId) { return { success: false, message: "Nama Pendek tidak valid." }; }
-  // ---------------------------------------------
 
-  const subjectDocRef = adminDb.collection("subjects").doc(docId); // Nama koleksi: 'subjects'
+  const subjectDocRef = adminDb.collection("subjects").doc(docId); 
 
   try {
     const docSnap = await subjectDocRef.get();
     if (docSnap.exists) { throw new Error(`Mata Pelajaran dengan nama pendek '${docId}' sudah ada.`); }
 
     const subjectData = {
-      nama_pendek: docId, // Simpan nama pendek yang sudah diproses
+      nama_pendek: docId, 
       nama_mapel: nama_mapel.trim(),
       kelompok: kelompok.trim(),
       kkm: Number(kkm),
       urutan: Number(urutan),
-      // Pastikan 'tingkat' adalah array of strings, urutkan (opsional)
       tingkat: tingkat.sort(),
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     };
 
     await subjectDocRef.set(subjectData);
 
-    revalidatePath("/list/subjects"); // <-- Ganti path ke /list/subjects
+    revalidatePath("/list/subjects"); 
 
     return { success: true, message: `Mata Pelajaran ${nama_mapel} (${docId}) berhasil dibuat.` };
 
@@ -73,16 +62,13 @@ export async function createSubjectAction(formData: SubjectFormData): Promise<Ac
   }
 }
 
-// --- FUNGSI UPDATE (Disesuaikan) ---
 export async function updateSubjectAction(formData: SubjectUpdateFormData): Promise<ActionResult> {
   const { id, nama_mapel, kelompok, kkm, urutan, tingkat } = formData;
 
-  // Validasi ID
   if (!id || !String(id).trim()) {
     return { success: false, message: "ID Mata Pelajaran tidak valid." };
   }
 
-  // Validasi field lain
   if (!nama_mapel || !kelompok || kkm === undefined || kkm === null || urutan === undefined || urutan === null || !tingkat || tingkat.length === 0) {
     return { success: false, message: "Semua field wajib diisi." };
   }
@@ -120,9 +106,9 @@ export async function updateSubjectAction(formData: SubjectUpdateFormData): Prom
 
     await subjectDocRef.update(subjectDataToUpdate);
 
-    revalidatePath("/list/subjects"); // <-- Ganti path
-    revalidatePath(`/list/subjects/${docId}`); // <-- Ganti path
-    revalidatePath(`/list/subjects/edit/${docId}`); // <-- Ganti path
+    revalidatePath("/list/subjects"); 
+    revalidatePath(`/list/subjects/${docId}`); 
+    revalidatePath(`/list/subjects/edit/${docId}`); 
 
     return { success: true, message: `Data Mata Pelajaran ${nama_mapel} (${docId}) berhasil diupdate.` };
 
@@ -132,13 +118,12 @@ export async function updateSubjectAction(formData: SubjectUpdateFormData): Prom
   }
 }
 
-// --- FUNGSI DELETE (Disesuaikan) ---
 export async function deleteSubjectAction(id: string): Promise<ActionResult> {
-   if (!id) { /* ... validasi ... */ }
+   if (!id) {  }
    const subjectDocRef = adminDb.collection("subjects").doc(id);
    try {
      await subjectDocRef.delete();
-     revalidatePath("/list/subjects"); // <-- Ganti path
+     revalidatePath("/list/subjects"); 
      return { success: true, message: `Mata Pelajaran (${id}) berhasil dihapus.` };
    } catch (error: any) {
     console.error("Error deleting teacher:", error);

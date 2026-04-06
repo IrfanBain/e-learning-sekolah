@@ -2,19 +2,13 @@
 
 import { useState } from "react";
 import Calendar from "react-calendar";
-// Kita tidak import 'react-calendar/dist/Calendar.css'
-// karena kita pakai style kustom di bawah
-
-// Tipe Kalender
 type ValuePiece = Date | null;
 type Value = ValuePiece | [ValuePiece, ValuePiece];
 
 const CalendarWidget = () => {
-  const [value, onChange] = useState<Value>(new Date());
-
-  return (
-    <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
-      {/* --- Style Kustom untuk Kalender --- */}
+ const [value, onChange] = useState<Value>(new Date());
+ return ( 
+ <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
       <style jsx global>{`
         .custom-calendar {
           border: none;
@@ -83,7 +77,7 @@ const CalendarWidget = () => {
           value={value} 
           className="custom-calendar"
           view="month"
-          locale="id-ID" // Memulai hari Senin (Sen)
+          locale="id-ID" 
       />
     </div>
   );

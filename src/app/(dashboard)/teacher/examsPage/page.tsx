@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/authContext'; // <-- Impor ASLI
-import { db } from '@/lib/firebaseConfig'; // <-- Impor ASLI
+import { useAuth } from '@/context/authContext'; 
+import { db } from '@/lib/firebaseConfig'; 
 import { 
     collection, 
     query, 
@@ -18,22 +18,18 @@ import {
     updateDoc,
     deleteDoc,
     writeBatch
-} from 'firebase/firestore'; // <-- Impor ASLI
+} from 'firebase/firestore'; 
 
 // Import ikon-ikon
 import { PlusSquare, Trash2, Edit2, List, CheckCircle, Clock, XCircle, ChevronRight, Loader2, FileText, AlertTriangle, Award } from 'lucide-react';
-import { toast } from 'react-hot-toast'; // <-- Asumsi Anda pakai 'sonner' untuk notifikasi
+import { toast } from 'react-hot-toast'; 
 import Link from 'next/link';
 
-// --- DEFINISI TIPE & DATA ---
-
-// Tipe untuk dropdown
 interface DropdownItem {
     id: string;
     nama: string;
 }
 
-// Tipe untuk dokumen 'exams' dari Firestore
 interface ExamDoc {
     id: string;
     judul: string;
@@ -45,19 +41,17 @@ interface ExamDoc {
     tanggal_dibuat: Timestamp;
     tanggal_selesai: Timestamp;
     status: "Draft" | "Dipublikasi" | "Ditutup";
-    // Data yang sudah digabung untuk ditampilkan
     mapelNama?: string;
     kelasNama?: string;
 }
 
-// Tipe untuk data formulir
 type ExamFormData = {
     judul: string;
     deskripsi: string;
     tipe: "Pilihan Ganda" | "Esai" | "Esai Uraian" | "PG dan Esai";
-    mapel_ref: string; // Akan menyimpan ID (string) dari dropdown
-    kelas_ref: string; // Akan menyimpan ID (string) dari dropdown
-    tanggal_selesai: string; // Akan menyimpan string tanggal-waktu
+    mapel_ref: string; 
+    kelas_ref: string; 
+    tanggal_selesai: string; 
     durasi_menit: number;
 }
 
@@ -71,35 +65,26 @@ const initialFormData: ExamFormData = {
     durasi_menit: 60,
 };
 
-// --- KOMPONEN UTAMA ---
 
 const TeacherExamPage = () => {
     const { user, loading: authLoading } = useAuth();
     
-    // State untuk UI
-    const [view, setView] = useState<'list' | 'create'>('list'); // Tampilan 'Daftar' or 'Buat Baru'
+    const [view, setView] = useState<'list' | 'create'>('list'); 
     const [loading, setLoading] = useState(true);
     const [formLoading, setFormLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
-
-    // State untuk Data
     const [examList, setExamList] = useState<ExamDoc[]>([]);
     const [availableMapel, setAvailableMapel] = useState<DropdownItem[]>([]);
     const [availableKelas, setAvailableKelas] = useState<DropdownItem[]>([]);
     const [formData, setFormData] = useState<ExamFormData>(initialFormData);
     const [editingExamId, setEditingExamId] = useState<string | null>(null);
 
-    // --- PENGAMBILAN DATA (FETCHING) ---
-
-    // Fungsi untuk mengambil data Mapel & Kelas (untuk dropdown)
     const fetchDropdownData = useCallback(async () => {
-        // Hanya fetch jika data belum ada
         if (availableMapel.length > 0 && availableKelas.length > 0) return;
 
         try {
-            // Ambil Mata Pelajaran
-            const mapelQuery = query(collection(db, "subjects")); // Asumsi nama koleksi 'subjects'
+            const mapelQuery = query(collection(db, "subjects")); 
             const mapelSnapshot = await getDocs(mapelQuery);
             const mapelData = mapelSnapshot.docs.map(doc => ({
                 id: doc.id,
@@ -107,8 +92,7 @@ const TeacherExamPage = () => {
             }));
             setAvailableMapel(mapelData);
 
-            // Ambil Kelas
-            const kelasQuery = query(collection(db, "classes")); // Asumsi nama koleksi 'classes'
+            const kelasQuery = query(collection(db, "classes")); 
             const kelasSnapshot = await getDocs(kelasQuery);
             const kelasData = kelasSnapshot.docs.map(doc => ({
                 id: doc.id,
@@ -121,9 +105,8 @@ const TeacherExamPage = () => {
             setError("Gagal memuat data mapel & kelas. " + err.message);
             toast.error("Gagal memuat data mapel & kelas.");
         }
-    }, [availableMapel, availableKelas]); // Dependensi agar tidak fetch ulang
+    }, [availableMapel, availableKelas]); 
 
-    // Fungsi untuk mengambil daftar Ujian yang sudah ada
     const fetchExamList = useCallback(async (userUid: string) => {
         setLoading(true);
         setError(null);
@@ -141,7 +124,6 @@ const TeacherExamPage = () => {
                 return;
             }
 
-            // Ambil data referensi (mapel & kelas) secara paralel
             const examsPromise = querySnapshot.docs.map(async (examDoc) => {
                 const examData = examDoc.data() as ExamDoc;
                 
@@ -178,11 +160,9 @@ const TeacherExamPage = () => {
                 const dateA = a.tanggal_dibuat?.toDate() || new Date(0);
                 const dateB = b.tanggal_dibuat?.toDate() || new Date(0);
 
-                // Sort by status first
                 if (statusOrder[a.status] !== statusOrder[b.status]) {
                     return statusOrder[a.status] - statusOrder[b.status];
                 }
-                // If status is same, sort by newest date first
                 return dateB.getTime() - dateA.getTime();
             });
             setExamList(combinedExams);
@@ -199,11 +179,10 @@ const TeacherExamPage = () => {
         }
     }, []);
 
-    // Effect utama: Ambil semua data saat komponen dimuat
     useEffect(() => {
         if (user?.uid && !authLoading) {
             fetchExamList(user.uid);
-            fetchDropdownData(); // Panggil juga data dropdown
+            fetchDropdownData(); 
         }
         
         if (!user && !authLoading) {
@@ -214,7 +193,6 @@ const TeacherExamPage = () => {
     }, [user, authLoading, fetchExamList, fetchDropdownData]);
 
 
-    // --- HANDLER UNTUK FORMULIR ---
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -233,12 +211,10 @@ const TeacherExamPage = () => {
 
         setFormLoading(true);
         try {
-            // Validasi sederhana
             if (!formData.judul || !formData.mapel_ref || !formData.kelas_ref || !formData.tanggal_selesai) {
                 throw new Error("Judul, Mapel, Kelas, dan Tanggal Selesai wajib diisi.");
             }
 
-            // Siapkan data untuk disimpan
         const examDataToSave = {
         judul: formData.judul,
         deskripsi: formData.deskripsi,
@@ -250,24 +226,19 @@ const TeacherExamPage = () => {
         durasi_menit: formData.durasi_menit,
       };
 
-      // --- MODIFIKASI: Cek apakah ini EDIT atau CREATE ---
       if (editingExamId) {
-        // --- LOGIKA UPDATE (EDIT) ---
         const examRef = doc(db, "exams", editingExamId);
         await updateDoc(examRef, {
           ...examDataToSave
-          // Kita tidak mengubah status atau jumlah_soal saat mengedit
         });
         
         toast.success("Info Ujian Berhasil Diperbarui!");
-        // Tidak perlu router.push, cukup kembali ke list
         setEditingExamId(null);
         setFormData(initialFormData);
         setView('list');
-        fetchExamList(user.uid); // Refresh data list
+        fetchExamList(user.uid); 
 
       } else {
-        // --- LOGIKA CREATE (YANG SUDAH ADA) ---
         const examDataToCreate = {
           ...examDataToSave,
           tanggal_dibuat: serverTimestamp(),
@@ -279,7 +250,7 @@ const TeacherExamPage = () => {
         const docRef = await addDoc(collection(db, "exams"), examDataToCreate);
             
             toast.success("Info Ujian Berhasil Disimpan!", {
-                duration: 3000, // 2 detik
+                duration: 3000,
             });
             setTimeout(() => {
                 router.push(`/teacher/examsPage/${docRef.id}`);
@@ -295,19 +266,16 @@ const TeacherExamPage = () => {
         }
     };
 
-    // --- BARU: Fungsi untuk mengeksekusi penghapusan ---
 const executeDeleteExam = async (examId: string, examJudul: string) => {
 const loadingToastId = toast.loading(`Menghapus "${examJudul}" dan semua soalnya...`);
 
 try {
 const examRef = doc(db, "exams", examId);
 
-// 1. Hapus semua soal di dalam sub-koleksi "soal"
 const soalCollectionRef = collection(db, "exams", examId, "soal");
 const soalSnap = await getDocs(soalCollectionRef);
 
 if (!soalSnap.empty) {
-// console.log(`Menghapus ${soalSnap.size} soal dari sub-koleksi...`);
 const batch = writeBatch(db);
 soalSnap.docs.forEach(soalDoc => {
 batch.delete(soalDoc.ref);
@@ -315,12 +283,10 @@ batch.delete(soalDoc.ref);
  await batch.commit();
  }
 
- // 2. Setelah soal terhapus, hapus dokumen ujian utama
  await deleteDoc(examRef);
 
- // 3. Refresh daftar ujian di UI
  toast.success(`Ujian "${examJudul}" berhasil dihapus.`, { id: loadingToastId });
- if(user) fetchExamList(user.uid); // Panggil ulang fetch
+ if(user) fetchExamList(user.uid);
 
  } catch (err: any) {
  console.error("Error deleting exam:", err);
@@ -328,9 +294,7 @@ batch.delete(soalDoc.ref);
  }
 };
 
-// --- BARU: Fungsi konfirmasi sebelum hapus ---
  const handleDeleteExam = (examId: string, examJudul: string) => {
- // Tampilkan toast konfirmasi
  toast(
 (t) => ( 
 <div className="flex flex-col gap-3 p-2">
@@ -366,62 +330,45 @@ toast.dismiss(t.id);
 };
 
 const handleCancelEdit = () => {
-    setEditingExamId(null);  // Hapus ID yang diedit
-    setFormData(initialFormData); // Kosongkan form
-    setView('list');      // Kembali ke daftar
+    setEditingExamId(null);  
+    setFormData(initialFormData); 
+    setView('list');      
   };
 
-  // --- MODIFIKASI: Fungsi untuk menangani klik edit ---
   const handleEditExam = (exam: ExamDoc) => {
-    // 1. Cek status (sesuai permintaan Anda)
     if (exam.status !== 'Draft') {
       toast.error("Harap kembalikan Ujian ke status 'Draft' terlebih dahulu untuk mengedit.", {
         icon: <AlertTriangle className="text-red-500" />
       });
-      return; // Hentikan fungsi
+      return;
     }
 
-    // 2. Jika 'Draft', siapkan form untuk diedit
-//     console.log("Mengedit:", exam);
-   
-    // 3. Konversi Timestamp ke string YYYY-MM-DDTHH:MM
     const deadlineString = exam.tanggal_selesai.toDate().toISOString().slice(0, 16);
    
-    // 4. Isi state form dengan data ujian yang ada
     setFormData({
       judul: exam.judul,
       deskripsi: exam.deskripsi,
       tipe: exam.tipe,
-      mapel_ref: exam.mapel_ref.id, // Simpan ID-nya saja
-      kelas_ref: exam.kelas_ref.id, // Simpan ID-nya saja
+      mapel_ref: exam.mapel_ref.id, 
+      kelas_ref: exam.kelas_ref.id, 
       tanggal_selesai: deadlineString,
-      // durasi_menit mungkin tidak ada di ExamDoc, tambahkan jika perlu
       durasi_menit: (exam as any).durasi_menit || 60 
     });
    
-    // 5. Set ID ujian yang sedang diedit
     setEditingExamId(exam.id);
    
-    // 6. Pindahkan view ke form
     setView('create');
   };
 
-    // --- TAMPILAN (RENDER) ---
 return (
         <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
             
-            {/* Header Halaman */}
-            {/* RESPONSIF: Dibuat flex-col di HP, dan sm:flex-row di layar lebih besar */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4 sm:gap-0">
-                {/* RESPONSIF: Ukuran font diubah di HP */}
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manajemen Ujian</h1>
                 
-                {/* Tombol Ganti Tampilan */}
-                {/* RESPONSIF: Dibuat flex-col di HP, dan sm:flex-row di layar lebih besar */}
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => setView('list')}
-                        // RESPONSIF: Tambahkan w-full sm:w-auto dan justify-center
                         className={`flex items-center justify-center sm:justify-start gap-2 py-2 px-4 rounded-lg transition-all w-full sm:w-auto ${
                             view === 'list' 
                             ? 'bg-blue-600 text-white shadow-md' 
@@ -433,7 +380,6 @@ return (
                     </button>
                     <button
                         onClick={() => setView('create')}
-                        // RESPONSIF: Tambahkan w-full sm:w-auto dan justify-center
                         className={`flex items-center justify-center sm:justify-start gap-2 py-2 px-4 rounded-lg transition-all w-full sm:w-auto ${
                             view === 'create' 
                             ? 'bg-blue-600 text-white shadow-md' 
@@ -446,7 +392,6 @@ return (
               <PlusSquare className="w-5 h-5" />
             )}
             
-            {/* --- BARU: Teks Dinamis --- */}
             <span>
               {editingExamId ? "Edit Ujian" : "Buat Ujian Baru"}
             </span>
@@ -454,7 +399,6 @@ return (
                 </div>
             </div>
 
-            {/* Konten Error Global */}
             {error && (
                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md" role="alert">
                     <p className="font-bold">Terjadi Kesalahan</p>
@@ -462,7 +406,6 @@ return (
                 </div>
             )}
 
-            {/* Tampilan Daftar Ujian */}
             {view === 'list' && (
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
                     <h2 className="text-xl font-semibold text-gray-800 mb-4">Daftar Ujian Dibuat</h2>
@@ -487,9 +430,7 @@ return (
                 </div>
             )}
 
-            {/* Tampilan Form Buat Ujian Baru */}
             {view === 'create' && (
-                // (Form ini sudah responsif karena menggunakan md:grid-cols-2)
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
                     <h2 className="text-xl font-semibold text-gray-800 mb-4">{editingExamId ? "Edit Informasi Ujian" : "Buat Ujian Baru (Informasi Umum)"}</h2>
                     <p className="text-sm text-gray-500 mb-6">
@@ -529,7 +470,6 @@ return (
                                         <option value="Pilihan Ganda">Pilihan Ganda</option>
                                         <option value="Esai">Esai</option>
                                         <option value="Esai Uraian">Esai Uraian</option>
-                                        {/* <option value="Tugas (Upload File)">Tugas (Upload File)</option> */}
                                     </select>
                                 </div>
                                 <div>
@@ -546,7 +486,6 @@ return (
                                 </div>
                             </div>
 
-                            {/* Kolom Kanan */}
                             <div className="space-y-4">
                                 <div>
                                     <label htmlFor="mapel_ref" className="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran <span className="text-red-500">*</span></label>
@@ -609,9 +548,7 @@ return (
                             </div>
                         </div>
                         
-                        {/* Tombol Aksi */}
             <div className="flex justify-end gap-3 items-center pt-4">
-              {/* Tombol Batal (Hanya muncul saat edit) */}
               {editingExamId && (
                 <button
                   type="button"
@@ -622,7 +559,6 @@ return (
                 </button>
               )} 
 
-              {/* Tombol Simpan (Dinamis) */}
               <button
                 type="submit"
                 disabled={formLoading}
@@ -643,9 +579,6 @@ return (
     );
 };
 
-// --- KOMPONEN PENDUKUNG ---
-
-// Komponen kecil untuk menampilkan satu item Ujian di daftar
 const ExamListItem = ({ exam, onDelete, onEdit }: { exam: ExamDoc, onDelete: (examId: string, examJudul: string) => void, onEdit: (exam: ExamDoc) => void }) => {
     const getStatusChip = (status: string) => {
         switch (status) {
@@ -665,30 +598,20 @@ const ExamListItem = ({ exam, onDelete, onEdit }: { exam: ExamDoc, onDelete: (ex
     }) : 'N/A';
 
     return (
-        // RESPONSIF: Dibuat flex-col di HP, sm:flex-row di layar lebih besar, items-start di HP
         <div className="border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center sm:justify-between hover:bg-gray-50 transition-all">
-            {/* RESPONSIF: Dibuat w-full agar memenuhi container di HP */}
             <div className="flex items-center gap-4 w-full">
-                {/* Ikon Tipe */}
                 <div className="flex-shrink-0">
                     {exam.tipe === 'PG dan Esai' && <FileText className="w-6 h-6 text-yellow-500" />}
                     {exam.tipe === 'Pilihan Ganda' && <List className="w-6 h-6 text-blue-500" />}
                     {exam.tipe === 'Esai' && <FileText className="w-6 h-6 text-green-500" />}
                     {exam.tipe === 'Esai Uraian' && <FileText className="w-6 h-6 text-purple-500" />}
-                    {/* {exam.tipe === 'Tugas (Upload File)' && <FileText className="w-6 h-6 text-purple-500" />} */}
                 </div>
-                {/* Info */}
-                {/* RESPONSIF: Dibuat w-full agar mengambil sisa ruang */}
                 <div className="w-full">
-                    {/* RESPONSIF: Ukuran font diubah di HP */}
                     <h3 className="text-base sm:text-lg font-semibold text-gray-800">{exam.judul}</h3>
-                    {/* RESPONSIF: Dibuat flex-col di HP, sm:flex-row di layar lebih besar, items-start di HP */}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4 text-sm text-gray-600 mt-1">
                         <span>{exam.mapelNama}</span>
-                        {/* RESPONSIF: Sembunyikan pembatas di HP */}
                         <span className="text-gray-300 hidden sm:inline">|</span>
                         <span>{exam.kelasNama}</span>
-                        {/* RESPONSIF: Sembunyikan pembatas di HP */}
                         <span className="text-gray-300 hidden sm:inline">|</span>
                         <span className="flex items-center gap-1">
                             <Clock className="w-4 h-4" /> {deadline}
@@ -696,15 +619,12 @@ const ExamListItem = ({ exam, onDelete, onEdit }: { exam: ExamDoc, onDelete: (ex
                     </div>
                 </div>
             </div>
-            {/* Aksi & Status */}
-            {/* RESPONSIF: Dibuat flex-col di HP, sm:flex-row, w-full, dan diberi batas atas di HP */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto mt-4 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                 {getStatusChip(exam.status)}
                 
                 {(exam.status === 'Dipublikasi' || exam.status === 'Ditutup') && (
                      <Link 
                         href={`/teacher/examsPage/${exam.id}/results`} 
-                        // RESPONSIF: Dibuat w-full di HP
                         className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-green-600 hover:text-green-800 font-medium py-1 px-2 rounded-md hover:bg-green-50 w-full sm:w-auto"
                     >
                         <Award className="w-4 h-4" />
@@ -712,23 +632,19 @@ const ExamListItem = ({ exam, onDelete, onEdit }: { exam: ExamDoc, onDelete: (ex
                     </Link>
                 )}
                 <Link 
-                    href={`/teacher/examsPage/${exam.id}`} // <-- Path dinamis
-                    // RESPONSIF: Dibuat w-full di HP
+                    href={`/teacher/examsPage/${exam.id}`} 
                     className="flex items-center justify-center sm:justify-start gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium w-full sm:w-auto"
                 >
                     Kelola Soal <ChevronRight className="w-4 h-4" />
                 </Link>
-                {/* --- GRUP TOMBOL AKSI (EDIT & HAPUS) --- */}
         <div className="flex flex-col gap-1 w-full sm:w-auto">
-          {/* Tombol Edit Baru */}
           <button
-            onClick={() => onEdit(exam)} // Panggil handler baru
+            onClick={() => onEdit(exam)} 
             className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-yellow-600 hover:text-yellow-800 font-medium py-1 px-2 rounded-md hover:bg-yellow-50 w-full"
           >
             <Edit2 className="w-4 h-4" /> Edit
           </button>
           
-          {/* Tombol Hapus Lama (dimasukkan ke div) */}
           <button
             onClick={() => onDelete(exam.id, exam.judul)}
             className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-red-600 hover:text-red-800 font-medium py-1 px-2 rounded-md hover:bg-red-50 w-full"

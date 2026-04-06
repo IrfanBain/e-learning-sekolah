@@ -30,46 +30,30 @@ import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import Image from 'next/image';
 
-// --- DEFINISI TIPE ---
-
-// Tipe untuk dropdown kelas
 interface KelasItem {
     id: string;
     nama: string;
-    // (Opsional) tambahkan ref jika perlu
 }
 
-// Tipe untuk data siswa
 interface StudentData {
     id: string;
     nama_lengkap: string;
     nisn?: string;
-    foto?: string; // URL foto profil
+    foto?: string; 
 }
 
-// --- KOMPONEN UTAMA ---
 const TeacherGradesPage = () => {
     const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
-    
-    // State Data
     const [availableKelas, setAvailableKelas] = useState<KelasItem[]>([]);
     const [studentList, setStudentList] = useState<StudentData[]>([]);
-    
-    // State UI
     const [selectedKelasId, setSelectedKelasId] = useState<string>("");
     const [loading, setLoading] = useState(true);
     const [loadingStudents, setLoadingStudents] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // --- 1. Ambil daftar kelas yang diajar guru ---
-    // (Catatan: Ini asumsi. Jika guru tidak terikat ke 'classes', 
-    // kita mungkin perlu mengambil semua kelas)
     const fetchTeacherClasses = useCallback(async (userUid: string) => {
         setLoading(true);
         setError(null);
         try {
-            // Asumsi: Kita ambil semua kelas yang ada
-            // (Jika guru punya 'kelas_ref' di datanya, query-nya bisa lebih spesifik)
             const kelasQuery = query(collection(db, "classes"), orderBy("tingkat", "asc"));
             const kelasSnapshot = await getDocs(kelasQuery);
             
@@ -80,7 +64,6 @@ const TeacherGradesPage = () => {
             
             setAvailableKelas(kelasData);
             
-            // Jika hanya ada 1 kelas, langsung pilih
             if (kelasData.length === 1) {
                 setSelectedKelasId(kelasData[0].id);
             }
@@ -94,19 +77,17 @@ const TeacherGradesPage = () => {
         }
     }, []);
 
-    // Effect untuk mengambil daftar kelas saat halaman dimuat
     useEffect(() => {
         if (user?.uid && !authLoading) {
             fetchTeacherClasses(user.uid);
         }
     }, [user, authLoading, fetchTeacherClasses]);
 
-    // --- 2. Ambil daftar siswa SETELAH kelas dipilih ---
     useEffect(() => {
         const fetchStudents = async () => {
             if (!selectedKelasId) {
                 setStudentList([]);
-                return; // Jangan fetch jika tidak ada kelas dipilih
+                return; 
             }
             
             setLoadingStudents(true);
@@ -123,7 +104,7 @@ const TeacherGradesPage = () => {
                     id: doc.id,
                     nama_lengkap: doc.data().nama_lengkap || "Tanpa Nama",
                     nisn: doc.data().nisn || "",
-                    foto: doc.data().fotoURL || null // Sesuaikan field 'fotoURL'
+                    foto: doc.data().fotoURL || null 
                 }));
                 
                 setStudentList(studentsData);
@@ -137,10 +118,9 @@ const TeacherGradesPage = () => {
         };
 
         fetchStudents();
-    }, [selectedKelasId]); // <-- Jalankan ulang setiap 'selectedKelasId' berubah
+    }, [selectedKelasId]); 
 
 
-    // --- TAMPILAN (RENDER) ---
     if (loading) {
         return (
             <div className="flex justify-center items-center h-[80vh] bg-gray-50">
@@ -164,10 +144,8 @@ const TeacherGradesPage = () => {
                 </div>
             )}
             
-            {/* --- Kontainer Filter dan Daftar Siswa --- */}
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100 mt-6">
                 
-                {/* --- Filter Kelas --- */}
                 <div className="flex flex-col sm:flex-row items-center gap-4 mb-4 pb-4 border-b border-gray-200">
                     <div className="flex items-center gap-2 text-gray-700">
                         <Users className="w-5 h-5" />
@@ -188,7 +166,6 @@ const TeacherGradesPage = () => {
                     </select>
                 </div>
 
-                {/* --- Daftar Siswa --- */}
                 {loadingStudents ? (
                     <div className="flex justify-center items-center h-60">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -215,14 +192,14 @@ const TeacherGradesPage = () => {
                         {studentList.map(student => (
                             <Link 
                                 key={student.id}
-                                href={`/teacher/results/${student.id}`} // <-- Arahkan ke halaman detail
+                                href={`/teacher/results/${student.id}`} 
                                 className="flex items-center justify-between py-4 px-2 rounded-lg hover:bg-gray-50 transition-all"
                             >
                                 <div className="flex items-center gap-3">
                                     <Image
                                         width={100}
                                         height={100} 
-                                        src={student.foto || `/placeholder-avatar.png`} // Ganti dengan path default jika tidak ada foto
+                                        src={student.foto || `/placeholder-avatar.png`} 
                                         alt="Foto Profil"
                                         className="w-10 h-10 rounded-full object-cover"
                                     />

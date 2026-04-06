@@ -1,12 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-// Kita akan buat 'updateUserAction' di tahap selanjutnya
-// import { updateUserAction } from '@/app/actions/userActions';
 import { toast } from 'react-hot-toast';
 import { updateUserAction } from '@/app/actions/userActions';
 
-// Tipe untuk user data yang kita terima
 interface UserData {
   id: string; 
   name: string;
@@ -16,38 +13,32 @@ interface UserData {
   role: 'admin' | 'teacher' | 'student';
 }
 
-// Tipe untuk props
 interface EditUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUserUpdated: () => void; 
-  user: UserData | null; // User yang akan diedit
+  user: UserData | null; 
 }
 
 export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: EditUserModalProps) {
-  // State untuk form
   const [name, setName] = useState('');
-  const [username, setUsername] = useState(''); // NISN/NIP
+  const [username, setUsername] = useState(''); 
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'student' | 'teacher' | 'admin'>('student');
-  
-  // State khusus untuk Edit
-  const [password, setPassword] = useState(''); // Opsional
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // --- LOGIKA PENTING ---
-  // Gunakan useEffect untuk mengisi form saat 'user' (prop) berubah
   useEffect(() => {
     if (user) {
       setName(user.name);
       setUsername(user.username);
       setEmail(user.email);
       setRole(user.role);
-      setPassword(''); // Selalu kosongkan password field
+      setPassword(''); 
       setError(null);
     }
-  }, [user]); // Ini akan berjalan setiap kali 'user' yang dipilih berubah
+  }, [user]); 
 
   if (!isOpen || !user) {
     return null;
@@ -57,30 +48,27 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
     e.preventDefault();
     setLoading(true);
     setError(null);
-    
-    
-    // Nanti kita ganti dengan Server Action
+  
    const result = await updateUserAction({
-      uid: user.id, // Kirim UID dari user yang diedit
+      uid: user.id, 
       name,
       username,
       email,
       role,
-      password: password || undefined // Kirim 'undefined' jika string password kosong
+      password: password || undefined 
     });
-    // ---
     
     setLoading(false);
 
     if (result.success) {
-      toast.success(result.message); // Tampilkan pesan sukses dari server
-      onUserUpdated(); // Tutup modal dan refresh (ini sudah benar)
+      toast.success(result.message); 
+      onUserUpdated(); 
     } else {
-      setError(result.message); // Tampilkan error dari server
+      setError(result.message); 
     }
     
     setLoading(false);
-    onUserUpdated(); // Tutup modal dan refresh
+    onUserUpdated(); 
   };
 
   const handleClose = () => {
@@ -89,10 +77,7 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
   };
 
   return (
-    // Latar belakang overlay
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      
-      {/* Konten Modal */}
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
         <div className="flex justify-between items-center border-b p-4">
           <h3 className="text-xl font-semibold">Edit Pengguna: {user.name}</h3>
@@ -100,8 +85,6 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
             &times;
           </button>
         </div>
-        
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           
           {error && (
@@ -173,8 +156,6 @@ export default function EditUserModal({ isOpen, onClose, onUserUpdated, user }: 
               <option value="admin">Admin</option>
             </select>
           </div>
-
-          {/* Tombol Aksi */}
           <div className="flex justify-end gap-4 pt-4">
             <button
               type="button"

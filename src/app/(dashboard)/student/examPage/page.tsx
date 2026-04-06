@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-// ... (imports tidak berubah) ...
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/authContext';
 import { db } from '@/lib/firebaseConfig';
@@ -20,8 +19,6 @@ import { Loader2, ArrowRight, BookOpenCheck, History, AlertTriangle, CheckCircle
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 
-// --- DEFINISI TIPE ---
-// (Tidak ada perubahan di sini)
 interface StudentData {
     nama_lengkap: string;
     kelas_ref: DocumentReference;
@@ -42,7 +39,7 @@ interface SubmissionData {
     latihan_ref: DocumentReference;
     student_ref: DocumentReference;
     nilai_akhir?: number;
-    nilai_esai?: number; // <-- Pastikan ini ada
+    nilai_esai?: number; 
     nilai_akhir_scaled?: number;
     status: string; 
     waktu_selesai: Timestamp;
@@ -52,9 +49,7 @@ type MergedExamData = ExamData & {
     customStatus?: "Tersedia" | "Selesai" | "Terlewat" | "Ditutup";
 };
 
-// --- KOMPONEN UTAMA ---
 const StudentExamPage = () => {
-    // ... (Semua state dan fungsi fetch tidak berubah) ...
     const { user, loading: authLoading } = useAuth();
     const [todoExams, setTodoExams] = useState<MergedExamData[]>([]);
     const [completedExams, setCompletedExams] = useState<MergedExamData[]>([]);
@@ -123,34 +118,26 @@ const StudentExamPage = () => {
                     (submission?.nilai_akhir !== undefined && submission?.nilai_akhir !== null) || 
                     (submission?.nilai_esai !== undefined && submission?.nilai_esai !== null);
 
-                // Cek apakah submission sudah di-submit final oleh siswa
                 const isSubmitted = submission?.status === 'dikerjakan';
 
                 if (submission) {
                     mergedData.submission = submission;
 
-                    // KASUS A: Sudah dinilai -> Selesai
                     if (isGraded) {
                         mergedData.customStatus = "Selesai";
                     }
-                    // KASUS B (STRICT): Sudah Submit -> Selesai (MUTLAK)
-                    // Kita TIDAK mengecek deadline lagi di sini.
-                    // Sekali status 'dikerjakan', siswa tidak bisa masuk lagi.
                     else if (isSubmitted) {
                         mergedData.customStatus = "Selesai";
                     }
-                    // KASUS C: Sedang Mengerjakan (Resume / Belum Submit Final)
-                    // Hanya di sini kita cek deadline, karena siswa belum klik 'Selesai'
                     else { 
                          if (examData.status === "Dipublikasi" && now < deadline) {
-                            mergedData.customStatus = "Tersedia"; // Tombol: Lanjutkan
+                            mergedData.customStatus = "Tersedia"; 
                         } else {
-                            mergedData.customStatus = "Terlewat"; // Tombol: Terlewat
+                            mergedData.customStatus = "Terlewat"; 
                         }
                     }
 
                 } else {
-                    // KASUS E: Belum pernah disentuh (Sama seperti sebelumnya)
                     mergedData.submission = undefined;
                     
                     if (examData.status === "Dipublikasi" && now < deadline) {
@@ -164,7 +151,7 @@ const StudentExamPage = () => {
 
                 const [mapelNama, guruNama] = await Promise.all([
                     getRefName(examData.mapel_ref, 'nama_mapel'),
-                    getRefName(examData.guru_ref, 'nama_lengkap') // <-- Sesuaikan field
+                    getRefName(examData.guru_ref, 'nama_lengkap') 
                 ]);
                 mergedData.mapelNama = mapelNama;
                 mergedData.guruNama = guruNama;
@@ -216,8 +203,6 @@ const StudentExamPage = () => {
         }
     }, [user, authLoading, fetchExamData, ]);
 
-    // --- RENDER ---
-    // (Render utama tidak berubah)
     if (loading || authLoading) {
         return (
             <div className="flex justify-center items-center h-[80vh] bg-gray-50">
@@ -281,7 +266,6 @@ const StudentExamPage = () => {
     );
 };
 
-// --- KOMPONEN KARTU LATIHAN (PENDUKUNG) ---
 
 const ExamCard = ({ exam }: { exam: MergedExamData }) => {
     
@@ -315,23 +299,18 @@ const ExamCard = ({ exam }: { exam: MergedExamData }) => {
                     <span className="text-sm text-green-700 font-semibold bg-green-100 px-3 py-1 rounded-full">
                         Selesai Dikerjakan
                     </span>
-                    {/* --- MODIFIKASI DISPLAY NILAI --- */}
                     <span className="text-base"> 
                         Nilai Akhir: 
                         
-                        {/* KASUS 1: Tipe Campuran, utamakan Nilai Akhir Skala 100 */}
                         {exam.tipe === 'PG dan Esai' ? ( 
                              <span className="font-bold text-purple-600 ml-1">
-                                {/* Gunakan nilai_akhir_scaled untuk skor final */}
                                 {exam.submission?.nilai_akhir_scaled ?? 'Menunggu'} 
                             </span>
-                        ) : exam.tipe === 'Pilihan Ganda' ? ( // KASUS 2: PG Murni
-                            // Tampilkan nilai_akhir (skor PG)
+                        ) : exam.tipe === 'Pilihan Ganda' ? ( 
                             <span className="font-bold text-blue-600 ml-1">
                                 {exam.submission?.nilai_akhir ?? '-'}
                             </span>
-                        ) : ( // KASUS 3: Esai Murni
-                            // Tampilkan nilai_esai (skor Esai manual)
+                        ) : ( 
                             <span className="font-bold text-green-600 ml-1">
                                 {exam.submission?.nilai_esai ?? 'Menunggu'}
                             </span>
@@ -380,7 +359,6 @@ const ExamCard = ({ exam }: { exam: MergedExamData }) => {
                         <span className="text-gray-300 hidden sm:inline">|</span>
                         <span>{exam.guruNama}</span>
                         <span className="text-gray-300 hidden sm:inline">|</span>
-                        {/* --- MODIFIKASI: Tampilkan Tipe Latihan --- */}
                         <span className="font-medium">{exam.tipe}</span>
                     </div>
                 </div>

@@ -48,8 +48,6 @@ import {
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 
-// --- DEFINISI TIPE ---
-
 interface DropdownItem {
     id: string;
     nama: string;
@@ -70,8 +68,8 @@ interface TopicDoc {
     tanggal_dibuat: Timestamp;
     update_terakhir: Timestamp;
     guru_ref: DocumentReference;
-    guru_nama: string; // <-- Ini yang gagal
-    guru_foto: string; // <-- Ini yang gagal
+    guru_nama: string; 
+    guru_foto: string; 
     kelas_ref: DocumentReference | null; 
     mapel_ref: DocumentReference;
     jumlah_balasan: number;
@@ -82,8 +80,8 @@ interface TopicDoc {
 type TopicFormData = {
     judul: string;
     isi_topik: string;
-    mapel_ref: string; // ID
-    kelas_ref: string; // ID atau "semua"
+    mapel_ref: string; 
+    kelas_ref: string; 
 };
 
 const initialFormData: TopicFormData = {
@@ -93,21 +91,15 @@ const initialFormData: TopicFormData = {
     kelas_ref: "semua",
 };
 
-// --- MODIFIKASI: Tipe data 'user' dari useAuth ---
 interface MergedUserData extends AuthUser {
-    // (AuthUser sudah punya uid, displayName, photoURL)
-    // 'name' adalah field kustom Anda dari debug
     name: string; 
     role: "student" | "teacher" | "admin";
     kelas_ref?: DocumentReference;
 }
 
-// --- KOMPONEN UTAMA ---
 const DiscussionPage = () => {
     const { user, loading: authLoading } = useAuth() as { user: MergedUserData | null, loading: boolean };
     const router = useRouter();
-
-    // (State tidak berubah)
     const [topicList, setTopicList] = useState<TopicDoc[]>([]);
     const [availableMapel, setAvailableMapel] = useState<DropdownItem[]>([]);
     const [availableKelas, setAvailableKelas] = useState<DropdownItem[]>([]);
@@ -117,7 +109,6 @@ const DiscussionPage = () => {
     const [isEditing, setIsEditing] = useState<TopicDoc | null>(null);
     const userRole = user?.role || null;
     
-    // (useEffect 'fetchDropdownData' tidak berubah)
     useEffect(() => {
         if (userRole === 'teacher' || userRole === 'admin') {
             const fetchDropdownData = async () => {
@@ -149,12 +140,10 @@ const DiscussionPage = () => {
         }
     }, [userRole]);
 
-    // (useEffect 'fetchTopicList' tidak berubah)
     useEffect(() => {
   if (!user) return;
   setLoading(true);
 
-  // helper buat gabungin topik tanpa duplikat
   const mergeUniqueTopics = (prev: TopicDoc[], newOnes: TopicDoc[]) => {
     const map = new Map<string, TopicDoc>();
     [...prev, ...newOnes].forEach(t => map.set(t.id, t));
@@ -163,7 +152,6 @@ const DiscussionPage = () => {
     );
   };
 
-  // helper buat isi nama mapel & kelas
   const enrichTopic = async (id: string, data: DocumentData): Promise<TopicDoc> => {
     let mapelNama = "N/A";
     let kelasNama = "Semua Kelas";
@@ -288,10 +276,6 @@ const DiscussionPage = () => {
   };
 }, [user, authLoading]);
 
-
-    // --- 4. Handler Aksi (Submit, Toggle, Delete) ---
-
-    // --- INI PERBAIKANNYA ---
     const handleSubmitTopic = async (formData: TopicFormData, topicId: string | null) => {
         if (!user || (userRole !== 'teacher' && userRole !== 'admin')) {
              toast.error("Hanya guru atau admin yang bisa membuat topik.");
@@ -299,12 +283,8 @@ const DiscussionPage = () => {
         }
 
         try {
-            // HAPUS 'getDoc' profil
-            // Ambil data profil (nama/foto) langsung dari 'user' (useAuth)
             const guruRef = doc(db, "teachers", user.uid); 
-            // 'user.name' adalah "Rizky Pratama" dari debug Anda
             const guruNama = user.name || "Guru Tanpa Nama"; 
-            // 'user.photoURL' adalah 'null' dari debug Anda
             const guruFoto = user.photoURL || ""; 
 
             const dataToSave = {
@@ -317,12 +297,10 @@ const DiscussionPage = () => {
             };
 
             if (topicId) {
-                // Mode Edit
                 const docRef = doc(db, "discussion_topic", topicId);
                 await updateDoc(docRef, dataToSave);
                 toast.success("Topik berhasil diperbarui!");
             } else {
-                // Mode Create
                 const fullData = {
                     ...dataToSave,
                     status: "Draft", 
@@ -330,8 +308,8 @@ const DiscussionPage = () => {
                     update_terakhir: serverTimestamp(),
                     guru_ref: guruRef,
                     pembuat_role: user.role,
-                    guru_nama: guruNama, // <-- Data yang sudah benar
-                    guru_foto: guruFoto, // <-- Data yang sudah benar
+                    guru_nama: guruNama, 
+                    guru_foto: guruFoto, 
                     jumlah_balasan: 0
                 };
                 await addDoc(collection(db, "discussion_topic"), fullData);
@@ -345,9 +323,6 @@ const DiscussionPage = () => {
             return false;
         }
     };
-    // --- AKHIR PERBAIKAN ---
-
-    // (Fungsi 'handleToggleStatus' tidak berubah)
     const handleToggleStatus = async (topic: TopicDoc) => {
         const newStatus = topic.status === "Dibuka" ? "Ditutup" : "Dibuka";
         const actionText = newStatus === "Dibuka" ? "Membuka (Publikasi)" : "Menutup";
@@ -364,7 +339,6 @@ const DiscussionPage = () => {
         }
     };
 
-    // (Fungsi 'handleDeleteTopic' tidak berubah)
     const handleDeleteTopic = (topic: TopicDoc) => {
         toast((t) => (
             <div className="flex flex-col gap-3 p-2">
@@ -399,9 +373,6 @@ const DiscussionPage = () => {
         ), { duration: 10000 });
     };
 
-
-    // --- TAMPILAN (RENDER) ---
-    // (Seluruh JSX tidak berubah)
     return (
         <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
             <div className="flex justify-between items-center mb-6">
@@ -514,7 +485,6 @@ const DiscussionPage = () => {
     );
 };
 
-// --- (Komponen 'TopicListItem' tidak berubah) ---
 const TopicListItem = ({ topic, userRole, userId, onToggleStatus, onDelete, onEdit }: { 
     topic: TopicDoc,
     userRole: "admin" | "teacher" | "student" | null,
@@ -604,7 +574,6 @@ const TopicListItem = ({ topic, userRole, userId, onToggleStatus, onDelete, onEd
                
                 <Link 
                     href={`/list/discussions/${topic.id}`} 
-                    // target="_blank"
                     className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium py-1 px-2 rounded-md hover:bg-blue-50"
                 >
                     Lihat <ChevronRight className="w-4 h-4" />
@@ -614,7 +583,6 @@ const TopicListItem = ({ topic, userRole, userId, onToggleStatus, onDelete, onEd
     );
 };
 
-// --- (Komponen 'TopicModal' tidak berubah) ---
 const TopicModal = ({ onClose, onSubmit, existingData, availableMapel, availableKelas, role }: { 
     onClose: () => void;
     onSubmit: (formData: TopicFormData, topicId: string | null) => Promise<boolean>;

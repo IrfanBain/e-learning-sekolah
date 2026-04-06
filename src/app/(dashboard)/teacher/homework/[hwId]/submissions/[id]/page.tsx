@@ -28,13 +28,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// --- DEFINISI TIPE ---
 
 interface HomeworkData {
-    deskripsi: string; // <-- TAMBAHKAN INI
-    file_lampiran?: {  // <-- TAMBAHKAN INI (Opsional, siapa tahu ada file soal)
+    deskripsi: string; 
+    file_lampiran?: {  
         url: string;
-        nama: string; // atau 'namaFile' tergantung saat save
+        nama: string; 
     } | null;
     judul: string;
     kelas_ref: DocumentReference;
@@ -63,39 +62,26 @@ interface SubmissionData {
     feedback_guru: string | null;
 }
 
-// --- KOMPONEN UTAMA ---
-
 const GradeHomeworkPage = () => {
-    // 1. Ambil status loading dari Auth agar sinkron
     const { user, loading: authLoading } = useAuth(); 
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams(); 
-    
     const hwId = params.hwId as string;
     const urlId = params.id as string;
     const status = searchParams.get('status');
-
-    // State Data
     const [homework, setHomework] = useState<HomeworkData | null>(null);
     const [student, setStudent] = useState<StudentData | null>(null);
     const [submission, setSubmission] = useState<SubmissionData | null>(null);
-    
-    // State UI (Default true)
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
-    // State Form
     const [nilai, setNilai] = useState<string>(""); 
     const [feedback, setFeedback] = useState<string>("");
     const [isSaving, setIsSaving] = useState(false);
 
-    // --- PENGAMBILAN DATA ---
     const fetchGradeData = useCallback(async () => {
-        // Pastikan user sudah login dulu
         if (!user) return; 
 
-        // Cek parameter wajib
         if (!hwId || !urlId || !status) {
             setError("Parameter URL tidak lengkap.");
             setLoading(false);
@@ -106,14 +92,12 @@ const GradeHomeworkPage = () => {
         setError(null);
 
         try {
-            // 1. Ambil data PR
             const hwRef = doc(db, "homework", hwId);
             const hwSnap = await getDoc(hwRef);
             if (!hwSnap.exists()) throw new Error("Pekerjaan Rumah tidak ditemukan.");
             setHomework(hwSnap.data() as HomeworkData);
 
             if (status === 'submitted') {
-                // --- KASUS 1: SUDAH MENGUMPULKAN ---
                 const subRef = doc(db, "homework_submissions", urlId);
                 const subSnap = await getDoc(subRef);
                 
@@ -124,7 +108,6 @@ const GradeHomeworkPage = () => {
                 const subData = { ...subSnap.data(), id: subSnap.id } as SubmissionData;
                 setSubmission(subData);
                 
-                // Ambil data siswa
                 if (subData.student_ref) {
                     const studentSnap = await getDoc(subData.student_ref);
                     if (studentSnap.exists()) {
@@ -138,7 +121,6 @@ const GradeHomeworkPage = () => {
                 setFeedback(subData.feedback_guru || "");
 
             } else if (status === 'pending') {
-                // --- KASUS 2: BELUM MENGUMPULKAN ---
                 const studentRef = doc(db, "students", urlId);
                 const studentSnap = await getDoc(studentRef);
                 
@@ -154,26 +136,20 @@ const GradeHomeworkPage = () => {
             setError(err.message || "Gagal memuat data.");
             toast.error(err.message);
         } finally {
-            // PENTING: Matikan loading apapun yang terjadi
             setLoading(false);
         }
     }, [hwId, urlId, status, user]);
 
-    // --- EFFECT UTAMA ---
     useEffect(() => {
-        // Hanya fetch jika auth sudah selesai loading
         if (!authLoading) {
             if (user) {
                 fetchGradeData();
             } else {
-                // Jika tidak ada user, matikan loading & tampilkan error/redirect
                 setLoading(false);
-                // opsional: router.push('/login');
             }
         }
     }, [authLoading, user, fetchGradeData]);
 
-    // --- HANDLER SIMPAN NILAI ---
     const handleSaveGrade = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -187,7 +163,6 @@ const GradeHomeworkPage = () => {
             }
 
             if (status === 'submitted' && submission?.id) {
-                // UPDATE
                 const subRef = doc(db, "homework_submissions", submission.id);
                 await updateDoc(subRef, {
                     nilai_tugas: nilaiAngka,
@@ -197,7 +172,6 @@ const GradeHomeworkPage = () => {
                 toast.success("Penilaian diperbarui!", { id: loadingToastId });
 
             } else if (status === 'pending' && student) {
-                // CREATE NEW (MANUAL)
                 const newSubmission = {
                     homework_ref: doc(db, "homework", hwId),
                     student_ref: doc(db, "students", student.id),
@@ -217,7 +191,6 @@ const GradeHomeworkPage = () => {
                 return;
             }
             
-            // Refresh data tanpa reload halaman
             fetchGradeData();
 
         } catch (err: any) {
@@ -229,12 +202,10 @@ const GradeHomeworkPage = () => {
     };
 
     const hasChanges = submission ? (
-        // Bandingkan nilai input dengan data di database
         nilai !== (submission.nilai_tugas?.toString() || "") ||
         feedback !== (submission.feedback_guru || "")
     ) : true;
 
-    // --- RENDER ---
     if (loading || authLoading) return <div className="flex justify-center items-center h-[80vh]"><Loader2 className="w-8 h-8 animate-spin text-blue-600"/></div>;
     if (error) return <div className="p-6 text-center text-red-600 bg-red-50 m-6 rounded-lg">{error}</div>;
 
@@ -247,7 +218,6 @@ const GradeHomeworkPage = () => {
                 Kembali ke Rekap
             </button>
 
-            {/* Header Info */}
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Periksa Pekerjaan Rumah</h1>
                 <p className="text-lg text-gray-600 mt-1">{homework?.judul}</p>
@@ -265,7 +235,6 @@ const GradeHomeworkPage = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 
-                {/* KOLOM KIRI: JAWABAN SISWA */}
                 <div className="md:col-span-2 space-y-6">
                     <div className="bg-white p-5 rounded-xl shadow-md border border-blue-100">
                         <h2 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -277,7 +246,6 @@ const GradeHomeworkPage = () => {
                             {homework?.deskripsi || "Tidak ada deskripsi tertulis."}
                         </div>
 
-                        {/* Tampilkan File Soal jika ada */}
                         {homework?.file_lampiran && (
                             <div className="mt-3">
                                 <a 
@@ -292,7 +260,6 @@ const GradeHomeworkPage = () => {
                             </div>
                         )}
                     </div>
-                    {/* 1. Status Pengumpulan */}
                     <div className="bg-white p-5 rounded-xl shadow-md border border-gray-100">
                         <h2 className="text-lg font-semibold text-gray-800 mb-3">Status Pengumpulan</h2>
                         
@@ -332,12 +299,10 @@ const GradeHomeworkPage = () => {
                         )}
                     </div>
 
-                    {/* 2. Konten Jawaban */}
                     {submission && (
                         <div className="bg-white p-5 rounded-xl shadow-md border border-gray-100 space-y-6">
                             <h2 className="text-lg font-semibold text-gray-800 border-b pb-2">Jawaban Siswa</h2>
                             
-                            {/* Teks */}
                             <div>
                                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
                                     <FileText className="w-4 h-4" /> Jawaban Teks
@@ -347,7 +312,6 @@ const GradeHomeworkPage = () => {
                                 </div>
                             </div>
 
-                            {/* File */}
                             <div>
                                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-2">
                                     <Download className="w-4 h-4" /> Lampiran File
@@ -376,7 +340,6 @@ const GradeHomeworkPage = () => {
                                 )}
                             </div>
 
-                            {/* Komentar */}
                             {submission.komentar_siswa && (
                                 <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
                                     <h3 className="text-xs font-bold text-yellow-700 uppercase mb-1 flex items-center gap-1">
@@ -389,7 +352,6 @@ const GradeHomeworkPage = () => {
                     )}
                 </div>
 
-                {/* KOLOM KANAN: FORM PENILAIAN */}
                 <div className="md:col-span-1">
                     <div className="bg-white p-5 rounded-xl shadow-md border border-gray-100 sticky top-6">
                         <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -435,22 +397,19 @@ const GradeHomeworkPage = () => {
                             <div className="pt-2">
                                 <button
                                     type="submit"
-                                    // Disable jika: Sedang loading ATAU (Sudah ada submission DAN Tidak ada perubahan)
                                     disabled={isSaving || (submission !== null && !hasChanges)}
                                     className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 font-semibold rounded-lg shadow-md transition-all ${
                                         (submission !== null && !hasChanges)
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' // Gaya saat disabled (Data sama)
-                                            : 'bg-green-600 text-white hover:bg-green-700'   // Gaya aktif (Ada perubahan/Baru)
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-green-600 text-white hover:bg-green-700' 
                                     }`}
                                 >
                                     {isSaving ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
-                                        // Ubah ikon: Jika sudah disimpan (tidak ada perubahan), tampilkan Check
                                         (!hasChanges && submission) ? <CheckCircle className="w-5 h-5" /> : <Save className="w-5 h-5" />
                                     )}
                                     
-                                    {/* Ubah Teks Tombol */}
                                     {isSaving 
                                         ? 'Menyimpan...' 
                                         : (submission && !hasChanges) 

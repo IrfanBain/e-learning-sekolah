@@ -1,30 +1,24 @@
-// src/components/admin/CreateUserModal.tsx
 "use client";
 
 import React, { useState } from 'react';
 import { createUserAction } from '@/app/actions/userActions';
 import toast from 'react-hot-toast';
 
-// Tipe untuk props
 interface CreateUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUserCreated: () => void;
-  // Kita akan tambahkan prop untuk 'onSubmit' nanti
 }
 
 export default function CreateUserModal({ isOpen, onClose, onUserCreated }: CreateUserModalProps) {
-  // State untuk form
   const [name, setName] = useState('');
-  const [username, setUsername] = useState(''); // NISN/NIP
+  const [username, setUsername] = useState(''); 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'student' | 'teacher' | 'admin'>('student');
   
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Jika modal tidak 'isOpen', jangan render apapun
   if (!isOpen) {
     return null;
   }
@@ -43,41 +37,34 @@ export default function CreateUserModal({ isOpen, onClose, onUserCreated }: Crea
     setLoading(true);
     setError(null);
 
-    // Panggil Server Action
     const result = await createUserAction({
       name,
       username,
       email,
       password,
       role,
-      uid: '', // UID tidak diperlukan saat membuat user baru
+      uid: '',
     });
 
     setLoading(false);
 
     if (result.success) {
-      // Jika sukses:
-      toast.success(result.message); // Tampilkan pesan sukses
-      resetForm(); // Kosongkan form
-      onUserCreated(); // Panggil fungsi refresh (yang akan menutup modal)
+      toast.success(result.message); 
+      resetForm(); 
+      onUserCreated(); 
     } else {
-      // Jika gagal:
-      setError(result.message); // Tampilkan error di dalam modal
+      setError(result.message); 
     }
   };
 
-  // Fungsi untuk menutup modal
   const handleClose = () => {
-    if (loading) return; // Jangan tutup jika sedang loading
-    resetForm(); // Bersihkan form saat ditutup
+    if (loading) return; 
+    resetForm(); 
     onClose();
   };
 
   return (
-    // Latar belakang overlay
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 py-4">
-      
-      {/* Konten Modal */}
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
         <div className="flex justify-between items-center border-b p-4">
           <h3 className="text-xl font-semibold">Tambah Pengguna Admin Baru</h3>
@@ -86,14 +73,12 @@ export default function CreateUserModal({ isOpen, onClose, onUserCreated }: Crea
             className="text-gray-400 hover:text-gray-600"
             disabled={loading}
           >
-            &times; {/* Ini adalah 'X' untuk close */}
+            &times; 
           </button>
         </div>
         
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           
-          {/* Tampilkan error jika ada */}
           {error && (
             <div className="p-3 bg-red-100 text-red-700 rounded-md">
               {error}
@@ -160,13 +145,10 @@ export default function CreateUserModal({ isOpen, onClose, onUserCreated }: Crea
               required
               className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
-              {/* <option value="student">Siswa</option>
-              <option value="teacher">Guru</option> */}
               <option value="admin">Admin</option>
             </select>
           </div>
 
-          {/* Tombol Aksi */}
           <div className="flex justify-end gap-4 pt-4">
             <button
               type="button"

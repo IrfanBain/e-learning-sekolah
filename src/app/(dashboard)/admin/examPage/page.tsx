@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'; // <-- Import useMemo
+import React, { useState, useEffect, useCallback, useMemo } from 'react'; 
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebaseConfig'; 
 import { 
@@ -30,15 +30,11 @@ import {
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 
-// --- DEFINISI TIPE ---
-
-// --- BARU: Tipe untuk dropdown ---
 interface DropdownItem {
     id: string;
     nama: string;
 }
 
-// Tipe untuk dokumen 'exams' dari Firestore
 interface ExamDoc {
     id: string;
     judul: string;
@@ -49,30 +45,22 @@ interface ExamDoc {
     tanggal_dibuat: Timestamp;
     tanggal_selesai: Timestamp;
     status: "Draft" | "Dipublikasi" | "Ditutup";
-    // Data yang sudah digabung untuk ditampilkan
     mapelNama?: string;
     kelasNama?: string;
     guruNama?: string; 
 }
 
-// --- KOMPONEN UTAMA ---
-
 const AdminExamPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [examList, setExamList] = useState<ExamDoc[]>([]); // Ini akan jadi list utama
-
-    // --- BARU: State untuk filter ---
+    const [examList, setExamList] = useState<ExamDoc[]>([]); 
     const [availableMapel, setAvailableMapel] = useState<DropdownItem[]>([]);
     const [availableKelas, setAvailableKelas] = useState<DropdownItem[]>([]);
     const [selectedMapel, setSelectedMapel] = useState<string>("all");
     const [selectedKelas, setSelectedKelas] = useState<string>("all");
-
-
-    // --- BARU: Fungsi untuk mengambil data filter dropdown ---
     const fetchDropdownData = useCallback(async () => {
         try {
-            // Ambil Mata Pelajaran
+            
             const mapelQuery = query(collection(db, "subjects"));
             const mapelSnapshot = await getDocs(mapelQuery);
             const mapelData = mapelSnapshot.docs.map(doc => ({
@@ -81,7 +69,6 @@ const AdminExamPage = () => {
             }));
             setAvailableMapel(mapelData);
 
-            // Ambil Kelas
             const kelasQuery = query(collection(db, "classes"));
             const kelasSnapshot = await getDocs(kelasQuery);
             const kelasData = kelasSnapshot.docs.map(doc => ({
@@ -95,7 +82,6 @@ const AdminExamPage = () => {
         }
     }, []);
 
-    // Fungsi untuk mengambil *SEMUA* latihan (tidak berubah)
     const fetchExamList = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -173,14 +159,11 @@ const AdminExamPage = () => {
         }
     }, []);
 
-    // --- MODIFIKASI: Effect utama ---
     useEffect(() => {
         fetchExamList();
-        fetchDropdownData(); // <-- Panggil fungsi data dropdown
-    }, [fetchExamList, fetchDropdownData]); // <-- Tambah dependensi
+        fetchDropdownData(); 
+    }, [fetchExamList, fetchDropdownData]); 
 
-
-    // Handler Hapus (tidak berubah)
     const executeDelete = async (examId: string, title: string) => {
         const loadingToastId = toast.loading(`Menghapus Ujian "${title}"...`);
         try {
@@ -196,7 +179,7 @@ const AdminExamPage = () => {
     };
 
     const handleDeleteExam = (examId: string, title: string) => {
-        // (Fungsi ini tidak berubah)
+
         toast((t) => (
             <div className="flex flex-col gap-3 p-2">
                 <div className="flex items-start gap-3">
@@ -232,30 +215,24 @@ const AdminExamPage = () => {
         ), { duration: 10000 });
     };
 
-    // --- BARU: Memoize list yang difilter ---
     const filteredExamList = useMemo(() => {
-        // Mulai dengan semua data
+
         return examList.filter(exam => {
-            // Cek filter mapel
+ 
             const mapelMatch = selectedMapel === "all" || exam.mapel_ref?.id === selectedMapel;
-            // Cek filter kelas
             const kelasMatch = selectedKelas === "all" || exam.kelas_ref?.id === selectedKelas;
-            
-            // Kembalikan true hanya jika kedua filter cocok (atau "all")
             return mapelMatch && kelasMatch;
         });
     }, [examList, selectedMapel, selectedKelas]);
 
-
-    // --- TAMPILAN (RENDER) ---
     return (
         <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
-            {/* Header Halaman */}
+            
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Manajemen Ujian (Admin)</h1>
             </div>
 
-            {/* Konten Error Global */}
+           
             {error && (
                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md" role="alert">
                     <p className="font-bold">Terjadi Kesalahan</p>
@@ -263,12 +240,11 @@ const AdminExamPage = () => {
                 </div>
             )}
 
-            {/* --- MODIFIKASI: Tampilan Daftar Latihan --- */}
+            
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
                     <h2 className="text-xl font-semibold text-gray-800">Semua Ujian ({filteredExamList.length})</h2>
                     
-                    {/* --- BARU: Filter Dropdowns --- */}
                     <div className="flex flex-col sm:flex-row gap-3">
                         <select
                             value={selectedMapel}
@@ -298,19 +274,16 @@ const AdminExamPage = () => {
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
                         <span className="ml-3 text-gray-600">Memuat semua Ujian...</span>
                     </div>
-                // --- MODIFIKASI: Cek filteredExamList.length ---
                 ) : filteredExamList.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-60 text-gray-500">
                         <FileText className="w-16 h-16 text-gray-300" />
                         <h3 className="text-xl font-semibold mt-4">Tidak Ada Ujian</h3>
-                        {/* --- BARU: Pesan dinamis --- */}
                         <p className="text-center">
                             {examList.length > 0 ? "Tidak ada Ujian yang cocok dengan filter Anda." : "Belum ada guru yang membuat Ujian."}
                         </p>
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {/* --- MODIFIKASI: Render filteredExamList --- */}
                         {filteredExamList.map(exam => (
                             <AdminExamListItem 
                                 key={exam.id} 
@@ -325,8 +298,6 @@ const AdminExamPage = () => {
     );
 };
 
-// --- KOMPONEN PENDUKUNG ---
-// (Tidak ada perubahan di AdminExamListItem)
 const AdminExamListItem = ({ exam, onDelete }: { exam: ExamDoc, onDelete: (id: string, title: string) => void }) => {
     
     const getStatusChip = (status: string) => {
@@ -370,37 +341,26 @@ const AdminExamListItem = ({ exam, onDelete }: { exam: ExamDoc, onDelete: (id: s
             <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
                 {getStatusChip(exam.status)}
                 
-                {/* --- MODIFIKASI: Buka di tab baru --- */}
                 <Link 
                     href={`/teacher/examsPage/${exam.id}`} 
                     title="Lihat Detail Soal (Buka di tab baru)"
-                    target="_blank" // <-- BARU
-                    rel="noopener noreferrer" // <-- BARU
+                    target="_blank" 
+                    rel="noopener noreferrer"
                     className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-blue-800 font-medium py-1 px-2 rounded-md hover:bg-gray-100"
                 >
                     <Eye className="w-4 h-4" />
                 </Link>
-
-                {/* --- MODIFIKASI: Buka di tab baru --- */}
                 {(exam.status === 'Dipublikasi' || exam.status === 'Ditutup') && (
                      <Link 
                         href={`/teacher/examsPage/${exam.id}/results`}
                         title="Lihat Hasil Siswa (Buka di tab baru)" 
-                        target="_blank" // <-- BARU
-                        rel="noopener noreferrer" // <-- BARU
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-sm text-green-600 hover:text-green-800 font-medium py-1 px-2 rounded-md hover:bg-green-50"
                     >
                         <Award className="w-4 h-4" />
                     </Link>
                 )}
-               
-                {/* <button 
-                    onClick={() => onDelete(exam.id, exam.judul)}
-                    title="Hapus Ujian Ini"
-                    className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 font-medium py-1 px-2 rounded-md hover:bg-red-50"
-                >
-                    <Trash2 className="w-4 h-4" />
-                </button> */}
             </div>
         </div>
     );

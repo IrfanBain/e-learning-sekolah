@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-// import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebaseConfig';
 import { getAuth } from 'firebase/auth';
 import { collection, query, getDocs, doc, getDoc, deleteDoc, DocumentReference, Timestamp, orderBy } from 'firebase/firestore';
@@ -102,7 +101,6 @@ const AdminHomeworkPage = () => {
                     let kelasNama = "N/A";
                     let guruNama = "N/A";
 
-                    // Fetch Mapel
                     if (hwData.mapel_ref) {
                         try {
                             const mapelSnap = await getDoc(hwData.mapel_ref);
@@ -112,7 +110,6 @@ const AdminHomeworkPage = () => {
                         }
                     }
 
-                    // Fetch Kelas
                     if (hwData.kelas_ref) {
                         try {
                             const klsSnap = await getDoc(hwData.kelas_ref);
@@ -127,7 +124,6 @@ const AdminHomeworkPage = () => {
                         }
                     }
 
-                    // Fetch Guru
                     if (hwData.guru_ref) {
                         try {
                             const guruSnap = await getDoc(hwData.guru_ref);

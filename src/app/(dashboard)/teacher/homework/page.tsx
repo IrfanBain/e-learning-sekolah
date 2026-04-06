@@ -17,8 +17,8 @@ import {
     Timestamp,
     DocumentReference,
     orderBy,
-    updateDoc, // <-- BARU: Untuk update status
-    deleteDoc  // <-- BARU: Untuk hapus
+    updateDoc, 
+    deleteDoc  
 } from 'firebase/firestore';
 import { 
     Loader2, 
@@ -36,15 +36,13 @@ import {
     ChevronRight,
     Edit,
     Lock,
-    EyeOff, // <-- BARU
+    EyeOff, 
     LockOpen,
 
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 
-// --- DEFINISI TIPE ---
-// (Definisi tipe tidak berubah)
 interface DropdownItem {
     id: string;
     nama: string;
@@ -85,12 +83,9 @@ const initialFormData: HomeworkFormData = {
     status: "Dipublikasi",
 };
 
-// --- KOMPONEN UTAMA ---
 const TeacherHomeworkPage = () => {
     const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
     const router = useRouter();
-
-    // (State tidak berubah)
     const [view, setView] = useState<'list' | 'create'>('list');
     const [loading, setLoading] = useState(true);
     const [formLoading, setFormLoading] = useState(false);
@@ -104,8 +99,6 @@ const TeacherHomeworkPage = () => {
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [editingHomeworkId, setEditingHomeworkId] = useState<string | null>(null);
 
-    // --- PENGAMBILAN DATA (FETCHING) ---
-    // (fetchDropdownData tidak berubah)
     const fetchDropdownData = useCallback(async () => {
         if (availableMapel.length > 0 && availableKelas.length > 0) return;
         try {
@@ -130,7 +123,6 @@ const TeacherHomeworkPage = () => {
         }
     }, [availableMapel, availableKelas]);
 
-    // (fetchHomeworkList tidak berubah)
     const fetchHomeworkList = useCallback(async (userUid: string) => {
         setLoading(true);
         setError(null);
@@ -193,7 +185,6 @@ const TeacherHomeworkPage = () => {
         }
     }, []);
 
-    // (useEffect tidak berubah)
     useEffect(() => {
         if (user?.uid && !authLoading) {
             fetchHomeworkList(user.uid);
@@ -205,15 +196,11 @@ const TeacherHomeworkPage = () => {
         }
     }, [user, authLoading, fetchHomeworkList, fetchDropdownData]);
 
-
-    // --- HANDLER UNTUK FORMULIR ---
-    // (handleFormChange tidak berubah)
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    // (handleFileChange tidak berubah)
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -283,9 +270,7 @@ const TeacherHomeworkPage = () => {
         setView('list');
     };
 
-    // --- BARU: Fungsi Mulai Edit ---
     const handleStartEdit = (hw: HomeworkDoc) => {
-        // 1. Cek Status: Hanya boleh edit jika Draft
         if (hw.status !== 'Draft') {
             toast.error("PR ini sudah Dipublikasi. Ubah status ke 'Draft' dulu untuk mengedit. Klik tombol mata untuk mengubah status", {
                 icon: <AlertTriangle className="text-red-500" />,
@@ -293,31 +278,25 @@ const TeacherHomeworkPage = () => {
             return;
         }
 
-        // 2. Isi Form dengan data lama
-        // Catatan: Kita ambil ID dari referensi (mapel_ref.id)
         setFormData({
             judul: hw.judul,
             deskripsi: hw.deskripsi,
             mapel_ref: hw.mapel_ref.id, 
             kelas_ref: hw.kelas_ref.id,
-            // Konversi Timestamp ke format datetime-local (YYYY-MM-DDTHH:MM)
             tanggal_selesai: hw.tanggal_selesai.toDate().toISOString().slice(0, 16),
             status: hw.status,
         });
 
-        // 3. Isi data file jika ada
         if (hw.file_lampiran) {
             setUploadedFile(hw.file_lampiran);
         } else {
             setUploadedFile(null);
         }
 
-        // 4. Set Mode Edit & Pindah View
         setEditingHomeworkId(hw.id);
         setView('create');
     };
     
-    // (handleRemoveFile tidak berubah)
     const handleRemoveFile = () => {
         setUploadedFile(null);
         setUploadError(null);
@@ -326,7 +305,6 @@ const TeacherHomeworkPage = () => {
     };
 
 
-    // (handleFormSubmit tidak berubah)
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!user) {
@@ -340,7 +318,6 @@ const TeacherHomeworkPage = () => {
                 throw new Error("Judul, Deskripsi, Mapel, Kelas, dan Tanggal Selesai wajib diisi.");
             }
 
-           // Siapkan data dasar
             const homeworkBaseData = {
                 judul: formData.judul,
                 deskripsi: formData.deskripsi,
@@ -353,21 +330,18 @@ const TeacherHomeworkPage = () => {
             };
 
             if (editingHomeworkId) {
-                // --- LOGIKA UPDATE (EDIT) ---
                 const hwRef = doc(db, "homework", editingHomeworkId);
-                await updateDoc(hwRef, homeworkBaseData); // Update data
+                await updateDoc(hwRef, homeworkBaseData);
                 toast.success("Perubahan PR berhasil disimpan!");
             } else {
-                // --- LOGIKA CREATE (BARU) ---
                 await addDoc(collection(db, "homework"), {
                     ...homeworkBaseData,
-                    tanggal_dibuat: serverTimestamp(), // Hanya set tanggal buat saat baru
+                    tanggal_dibuat: serverTimestamp(), 
                 });
                 toast.success("Pekerjaan Rumah berhasil dibuat!");
             }
             
-            // Reset & Refresh
-            handleCancelEdit(); // Reset form & state
+            handleCancelEdit();
             fetchHomeworkList(user.uid);
 
         } catch (err: any) {
@@ -377,9 +351,6 @@ const TeacherHomeworkPage = () => {
             setFormLoading(false);
         }
     };
-
-    // --- BARU: Handler untuk ubah status Draft/Publikasi ---
-    // --- MODIFIKASI: Fungsi ubah status lebih fleksibel ---
   const handleToggleStatus = async (id: string, newStatus: "Draft" | "Dipublikasi" | "Ditutup") => {
       try {
           await updateDoc(doc(db, "homework", id), { status: newStatus });
@@ -398,16 +369,12 @@ const TeacherHomeworkPage = () => {
       }
   }
 
-    // --- BARU: Handler untuk Hapus PR ---
     const executeDelete = async (hwId: string, title: string) => {
         const loadingToastId = toast.loading(`Menghapus PR "${title}"...`);
         try {
-            // PERINGATAN: Ini tidak menghapus file di R2 atau data submission terkait.
-            // Itu memerlukan logic API/worker yang lebih kompleks.
             await deleteDoc(doc(db, "homework", hwId));
             
             toast.success("PR berhasil dihapus.", { id: loadingToastId });
-            // Hapus dari list di UI
             setHomeworkList(prevList => prevList.filter(hw => hw.id !== hwId));
             
         } catch (err: any) {
@@ -449,10 +416,8 @@ const TeacherHomeworkPage = () => {
         ), { duration: 10000 });
     };
 
-    // --- TAMPILAN (RENDER) ---
     return (
         <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
-            {/* ... (Header tidak berubah) ... */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manajemen PR</h1>
                 <div className="flex gap-2 w-full sm:w-auto">
@@ -483,15 +448,13 @@ const TeacherHomeworkPage = () => {
                 </div>
             </div>
 
-            {/* ... (Error global tidak berubah) ... */}
             {error && (
                 <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-md" role="alert">
                     <p className="font-bold">Terjadi Kesalahan</p>
                     <p>{error}</p>
                 </div>
             )}
-
-            {/* --- MODIFIKASI: Tampilan Daftar PR --- */}
+ 
             {view === 'list' && (
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
                     <h2 className="text-xl font-semibold text-gray-800 mb-4">Daftar PR Dibuat</h2>
@@ -508,7 +471,6 @@ const TeacherHomeworkPage = () => {
                         </div>
                     ) : (
                         <div className="space-y-3">
-                            {/* --- MODIFIKASI: Kirim props baru --- */}
                             {homeworkList.map(hw => (
                                 <HomeworkListItem 
                                     key={hw.id} 
@@ -523,14 +485,12 @@ const TeacherHomeworkPage = () => {
                 </div>
             )}
 
-            {/* ... (Tampilan Form "Buat PR" tidak berubah) ... */}
             {view === 'create' && (
                 <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
                     <h2 className="text-xl font-semibold text-gray-800 mb-4">Buat Pekerjaan Rumah Baru</h2>
                     
                     <form onSubmit={handleFormSubmit} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Kolom Kiri */}
                             <div className="space-y-4">
                                 <div>
                                     <label htmlFor="judul" className="block text-sm font-medium text-gray-700 mb-1">Judul PR <span className="text-red-500">*</span></label>
@@ -560,7 +520,6 @@ const TeacherHomeworkPage = () => {
                                 </div>
                             </div>
 
-                            {/* Kolom Kanan */}
                             <div className="space-y-4">
                                 <div>
                                     <label htmlFor="mapel_ref" className="block text-sm font-medium text-gray-700 mb-1">Mata Pelajaran <span className="text-red-500">*</span></label>
@@ -622,7 +581,6 @@ const TeacherHomeworkPage = () => {
                             </div>
                         </div>
 
-                        {/* --- Bagian Upload File --- */}
                         <div className="border-t pt-6">
                             <label className="block text-sm font-medium text-gray-700 mb-2">Lampiran File (Opsional)</label>
                             <p className="text-xs text-gray-500 mb-2">Upload file soal (PDF, Word, dll) jika instruksi tidak cukup.</p>
@@ -674,7 +632,6 @@ const TeacherHomeworkPage = () => {
                             )}
                         </div>
                         
-                        {/* Tombol Aksi Form */}
                         <div className="flex justify-end items-center gap-3 pt-4 border-t">
                             {editingHomeworkId && (
                                 <button
@@ -702,7 +659,6 @@ const TeacherHomeworkPage = () => {
     );
 };
 
-// --- KOMPONEN PENDUKUNG (MODIFIKASI) ---
 
 const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: { 
     hw: HomeworkDoc,
@@ -711,11 +667,9 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
     onEdit: (hw: HomeworkDoc) => void
 }) => {
     
-    // --- PERBAIKAN: Cek apakah deadline valid ---
     const deadlineDate = hw.tanggal_selesai ? hw.tanggal_selesai.toDate() : null;
     const isExpired = deadlineDate ? deadlineDate < new Date() : false;
     
-    // Format tanggal yang aman
     const deadlineString = deadlineDate 
         ? deadlineDate.toLocaleString('id-ID', {
             day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -723,7 +677,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
         : "Belum diatur";
 
     const renderStatusChip = () => {
-        // 1. Jika Draft, tetap kuning
         if (hw.status === 'Draft') {
             return (
                 <span className="px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">
@@ -732,7 +685,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
             );
         }
         
-        // 2. Cek Ditutup Manual (INI YANG TADI KURANG/TERLEWAT)
         if (hw.status === 'Ditutup') {
             return (
                 <span className="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
@@ -741,8 +693,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
             );
         }
         
-        // 3. Cek Expired (Deadline Lewat)
-        // Ini hanya berlaku jika statusnya 'Dipublikasi' tapi waktunya habis
         if (isExpired) {
             return (
                 <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-300">
@@ -751,7 +701,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
             );
         }
 
-        // 3. Jika Dipublikasi dan belum lewat -> "Dipublikasi" (Hijau)
         return (
             <span className="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
                 Dipublikasi
@@ -762,9 +711,8 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
     return (
         <div className="border border-gray-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:bg-gray-50 transition-all">
             <div className="flex items-center gap-4">
-                {/* Ikon & Info PR (tetap sama) */}
                 <div className="flex-shrink-0">
-                    <FileText className="w-6 h-6 text-blue-500" /> {/* Saya ganti BookUp jadi FileText jika BookUp tidak ada */}
+                    <FileText className="w-6 h-6 text-blue-500" /> 
                 </div>
                 <div>
                     <h3 className="text-lg font-semibold text-gray-800">{hw.judul}</h3>
@@ -780,14 +728,9 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
                 </div>
             </div>
             
-            {/* Tombol Aksi */}
             <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                 {renderStatusChip()}
                 
-                {/* Tombol Publikasi / Draft */}
-                {/* --- TOMBOL STATUS DINAMIS --- */}
-                
-                {/* 1. Jika DRAFT -> Tombol PUBLIKASI */}
                 {hw.status === "Draft" && (
                     <button
                         onClick={() => onToggleStatus(hw.id, "Dipublikasi")}
@@ -797,11 +740,8 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
                         <Eye className="w-4 h-4" />
                     </button>
                 )}
-
-                {/* 2. Jika DIPUBLIKASI -> Tombol TUTUP & DRAFT */}
                 {hw.status === "Dipublikasi" && (
                     <>
-                        {/* Tombol Tutup (Lock) */}
                         <button
                             onClick={() => onToggleStatus(hw.id, "Ditutup")}
                             title="Tutup Pengumpulan (Siswa tidak bisa kirim lagi)"
@@ -810,7 +750,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
                             <Lock className="w-4 h-4" />
                         </button>
                         
-                        {/* Tombol Balik ke Draft */}
                         <button
                             onClick={() => onToggleStatus(hw.id, "Draft")}
                             title="Kembalikan ke Draft (Sembunyikan)"
@@ -821,7 +760,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
                     </>
                 )}
 
-                {/* 3. Jika DITUTUP -> Tombol BUKA KEMBALI */}
                 {hw.status === "Ditutup" && (
                     <button
                         onClick={() => onToggleStatus(hw.id, "Dipublikasi")}
@@ -832,7 +770,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
                     </button>
                 )}
 
-                {/* Tombol Edit */}
                 <button
                     onClick={() => onEdit(hw)}
                     title="Edit PR"
@@ -841,7 +778,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
                     <Edit className="w-4 h-4" />
                 </button>
 
-                {/* Tombol Hapus */}
                 <button
                     onClick={() => onDelete(hw.id, hw.judul)}
                     title="Hapus PR"
@@ -850,7 +786,6 @@ const HomeworkListItem = ({ hw, onToggleStatus, onDelete, onEdit }: {
                     <Trash2 className="w-4 h-4" />
                 </button>
                
-                {/* Tombol Lihat Pengumpulan */}
                 <Link 
                     href={`/teacher/homework/${hw.id}/submissions`}
                     className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium py-1 px-2 rounded-md hover:bg-blue-50"

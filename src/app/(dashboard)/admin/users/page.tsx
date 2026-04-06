@@ -1,7 +1,5 @@
-// src/app/(dashboard)/admin/users/page.tsx
 "use client";
 
-// 'useMemo' adalah tambahan opsional tapi bagus untuk performa
 import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebaseConfig'; 
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
@@ -11,7 +9,6 @@ import { deleteUserAction } from '@/app/actions/userActions';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/context/authContext';
 
-// Tipe data (tidak berubah)
 interface UserData {
   id: string; 
   name: string;
@@ -23,24 +20,18 @@ interface UserData {
 
 export default function ManageUsersPage() {
   const { user: currentUser } = useAuth();
-  // --- MODIFIKASI STATE ---
-  // State untuk menyimpan filter
-  const [roleFilter, setRoleFilter] = useState<string>('all'); // 'all', 'admin', 'teacher', 'student'
+  const [roleFilter, setRoleFilter] = useState<string>('all'); 
   const [searchQuery, setSearchQuery] = useState<string>('');
-  
-  // State untuk data
-  const [allUsers, setAllUsers] = useState<UserData[]>([]); // Ganti nama: dari 'users' -> 'allUsers'
+  const [allUsers, setAllUsers] = useState<UserData[]>([]); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
 
-  // --- 1. UBAH NAMA FUNGSI 'fetchUsers' ---
   const fetchUsers = async () => {
-    // ... (Logika fetchUsers Anda tidak berubah) ...
     try {
-      setLoading(true); // Set loading di sini agar ada indikator
+      setLoading(true);
       setError(null);
       const usersCollection = collection(db, "users");
       const q = query(usersCollection, orderBy("name", "asc"));
@@ -51,29 +42,20 @@ export default function ManageUsersPage() {
       } as UserData));
       setAllUsers(usersList);
     } catch (err) {
-      // ... (logika error) ...
     } finally {
       setLoading(false);
     }
   };
 
-  // useEffect untuk mengambil data (hanya sedikit diubah)
  useEffect(() => {
-    fetchUsers(); // Panggil saat pertama kali load
+    fetchUsers();
   }, []);
-
-  // --- TAMBAHAN BARU: Logika untuk memfilter data ---
-  // 'useMemo' akan menjalankan ulang filter HANYA jika salah satu dari
-  // 'allUsers', 'roleFilter', atau 'searchQuery' berubah.
   const filteredUsers = useMemo(() => {
-    let users = [...allUsers]; // Mulai dengan semua user
-
-    // 1. Terapkan filter Role
+    let users = [...allUsers]; 
     if (roleFilter !== 'all') {
       users = users.filter(user => user.role === roleFilter);
     }
 
-    // 2. Terapkan filter Search (cari di 'name' ATAU 'username')
     if (searchQuery) {
       const lowerCaseQuery = searchQuery.toLowerCase();
       users = users.filter(user => 
@@ -83,9 +65,8 @@ export default function ManageUsersPage() {
     }
 
     return users;
-  }, [allUsers, roleFilter, searchQuery]); // Dependensi
+  }, [allUsers, roleFilter, searchQuery]);
 
-// --- 3. BUAT FUNGSI BARU UNTUK MENANGANI MODAL ---
   const handleCreateModalClose = () => {
     setIsCreateModalOpen(false);
   };
@@ -95,27 +76,24 @@ export default function ManageUsersPage() {
   };
 
   const handleUserCreation = () => {
-    handleCreateModalClose(); // Tutup modal
-    // 'revalidatePath' dari Server Action akan menangani refresh data.
-    // Tapi jika Anda ingin refresh instan di client:
-    fetchUsers(); // Anda bisa panggil ini lagi untuk refresh instan
+    handleCreateModalClose(); 
+    fetchUsers(); 
   };
 
   const handleEditModalClose = () => {
     setIsEditModalOpen(false);
-    setEditingUser(null); // Bersihkan user yang diedit
+    setEditingUser(null); 
   };
   const handleEditModalOpen = (user: UserData) => {
-    setEditingUser(user); // Set user yang akan diedit
-    setIsEditModalOpen(true); // Buka modal
+    setEditingUser(user);
+    setIsEditModalOpen(true);
   };
   const handleUserUpdate = () => {
     handleEditModalClose();
-    fetchUsers(); // Refresh tabel
+    fetchUsers();
   };
   
   const handleDeleteUser = (userId: string, userName: string) => {
-    // Pencegahan di sisi client: jangan biarkan admin hapus diri sendiri
     if (currentUser?.uid === userId) {
       toast.error("Anda tidak dapat menghapus akun Anda sendiri!");
       return;
@@ -138,8 +116,7 @@ export default function ManageUsersPage() {
             </button>
             <button
               onClick={() => {
-                toast.dismiss(t.id); // Tutup toast konfirmasi
-                // Panggil proses hapus yang sebenarnya
+                toast.dismiss(t.id); 
                 performDelete(userId, userName); 
               }}
               className="px-3 py-1 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700"
@@ -150,13 +127,12 @@ export default function ManageUsersPage() {
         </div>
       ),
       {
-        duration: 6000, // Biarkan toast terbuka lebih lama
+        duration: 6000,
         position: 'top-center',
       }
     );
   };
   const performDelete = async (userId: string, userName: string) => {
-    // Tampilkan toast loading saat proses
     const promise = deleteUserAction(userId);
     
     toast.promise(
@@ -165,15 +141,13 @@ export default function ManageUsersPage() {
         loading: `Menghapus ${userName}...`,
         success: (result) => {
           if (result.success) {
-            fetchUsers(); // <-- REFRESH DATA DI SINI
-            return result.message; // Pesan sukses dari server action
+            fetchUsers(); 
+            return result.message; 
           } else {
-            // Jika server action mengembalikan 'success: false'
             throw new Error(result.message);
           }
         },
         error: (err) => {
-          // Jika promise-nya sendiri gagal (error jaringan, dll)
           return `Gagal menghapus: ${err.message}`;
         },
       }
@@ -200,10 +174,7 @@ export default function ManageUsersPage() {
           + Tambah User Baru
         </button>
       </div>
-
-      {/* --- TAMBAHAN BARU: Baris Filter --- */}
       <div className="flex flex-col md:flex-row gap-4 mb-4  bg-gray-50 rounded-lg">
-        {/* Filter Search */}
         <div className="flex-grow">
           <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
             Cari (Nama atau NISN/NIP)
@@ -218,7 +189,6 @@ export default function ManageUsersPage() {
           />
         </div>
         
-        {/* Filter Role */}
         <div className="w-full md:w-1/4">
           <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
             Filter Role
@@ -236,14 +206,10 @@ export default function ManageUsersPage() {
           </select>
         </div>
       </div>
-      {/* --- AKHIR BARIS FILTER --- */}
 
-
-      {/* Tabel untuk menampilkan data (diubah ke 'filteredUsers') */}
       <div className="overflow-x-auto shadow-md rounded-lg">
         <table className="w-full text-sm text-left text-gray-700">
           <thead className="text-xs text-gray-700 uppercase bg-gray-100">
-            {/* ... header tabel (tidak berubah) ... */}
             <tr>
               <th scope="col" className="px-6 py-3">Nama</th>
               <th scope="col" className="px-6 py-3">NISN / NIP</th>
@@ -253,7 +219,6 @@ export default function ManageUsersPage() {
             </tr>
           </thead>
           <tbody>
-            {/* --- UBAH: Gunakan 'filteredUsers' untuk di-map --- */}
             {filteredUsers.map((user) => (
               <tr key={user.id} className="bg-white border-b hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
@@ -276,7 +241,6 @@ export default function ManageUsersPage() {
         </table>
       </div>
       
-      {/* --- UBAH: Pesan jika hasil filter kosong --- */}
       {filteredUsers.length === 0 && (
         <div className="text-center p-8 text-gray-500">
           {allUsers.length === 0 

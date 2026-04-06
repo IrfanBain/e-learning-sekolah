@@ -24,11 +24,10 @@ import {
     BookUp,
     ListChecks,
     FileText,
-    ListFilter // <-- BARU
+    ListFilter
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// --- DEFINISI TIPE ---
 
 type GradeItem = {
     id: string; 
@@ -41,10 +40,6 @@ type GradeItem = {
     mapelNama: string;
 };
 
-// --- HAPUS Tipe SubjectGrades ---
-// (Kita tidak perlu grouping lagi)
-
-// Helper (tidak berubah)
 const getRefName = async (ref: DocumentReference, fieldName: string): Promise<string> => {
     try {
         const docSnap = await getDoc(ref);
@@ -55,15 +50,12 @@ const getRefName = async (ref: DocumentReference, fieldName: string): Promise<st
     return "N/A";
 };
 
-// --- KOMPONEN UTAMA ---
 const StudentGradesPage = () => {
     const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
     
-    // --- MODIFIKASI: Ganti state groupedGrades menjadi allGrades ---
     const [allGrades, setAllGrades] = useState<GradeItem[]>([]);
     const [studentName, setStudentName] = useState<string>("");
     
-    // --- BARU: State untuk filter ---
     type FilterType = "semua" | "latihan" | "pr";
     const [filterTipe, setFilterTipe] = useState<FilterType>("semua");
 
@@ -73,7 +65,6 @@ const StudentGradesPage = () => {
     const mapelCache = React.useRef(new Map<string, string>());
 
     const getCachedMapelName = useCallback(async (mapelRef: DocumentReference) => {
-        // ... (tidak berubah)
         const mapelId = mapelRef.id;
         let mapelNama = mapelCache.current.get(mapelId);
         if (!mapelNama) {
@@ -83,7 +74,6 @@ const StudentGradesPage = () => {
         return { mapelId, mapelNama };
     }, []);
 
-    // --- MODIFIKASI: Fungsi fetchAllGrades ---
     const fetchAllGrades = useCallback(async (userUid: string) => {
         setLoading(true);
         setError(null);
@@ -96,14 +86,12 @@ const StudentGradesPage = () => {
             }
             setStudentName(studentSnap.data()?.nama_lengkap || "Siswa");
 
-            // --- 1. Ambil Nilai Latihan (student's_answer) ---
             const answersQuery = query(
                 collection(db, "student's_answer"),
                 where("student_ref", "==", studentRef),
                 where("status", "==", "dikerjakan") 
             );
             
-            // --- 2. Ambil Nilai Tugas (homework_submissions) ---
             const hwQuery = query(
                 collection(db, "homework_submissions"),
                 where("student_ref", "==", studentRef)
@@ -116,7 +104,6 @@ const StudentGradesPage = () => {
 
             let allItems: GradeItem[] = [];
 
-            // --- Proses Nilai Latihan (logika tidak berubah) ---
             for (const subDoc of answersSnapshot.docs) {
                 const data = subDoc.data();
                 const latihanRef = data.latihan_ref as DocumentReference;
@@ -135,7 +122,7 @@ const StudentGradesPage = () => {
                 if (tipe === "Latihan PG") {
                     skor = data.nilai_akhir ?? 0;
                     status = "Dinilai";
-                } else { // Esai
+                } else { 
                     skor = data.nilai_esai ?? null;
                     status = (skor !== null) ? "Dinilai" : "Menunggu Penilaian";
                 }
@@ -152,7 +139,6 @@ const StudentGradesPage = () => {
                 });
             }
 
-            // --- Proses Nilai Tugas Rumah (logika tidak berubah) ---
             for (const subDoc of hwSnapshot.docs) {
                 const data = subDoc.data();
                 const hwRef = data.homework_ref as DocumentReference;
@@ -178,9 +164,6 @@ const StudentGradesPage = () => {
                 });
             }
 
-            // --- 3. HAPUS Logika Grouping ---
-            
-            // --- 4. BARU: Simpan list datar (flat list) & urutkan ---
             allItems.sort((a, b) => b.tanggal.toMillis() - a.tanggal.toMillis());
             setAllGrades(allItems);
 
@@ -197,7 +180,6 @@ const StudentGradesPage = () => {
         }
     }, [getCachedMapelName]);
 
-    // Effect utama (tidak berubah)
     useEffect(() => {
         if (user?.uid && !authLoading) {
             fetchAllGrades(user.uid);
@@ -208,7 +190,6 @@ const StudentGradesPage = () => {
         }
     }, [user, authLoading, fetchAllGrades]);
 
-    // --- BARU: Memo untuk memfilter daftar nilai ---
     const filteredGrades = useMemo(() => {
         if (filterTipe === "semua") {
             return allGrades;
@@ -222,7 +203,6 @@ const StudentGradesPage = () => {
         return allGrades;
     }, [allGrades, filterTipe]);
 
-    // --- TAMPILAN (RENDER) ---
     if (loading || authLoading) {
         return (
             <div className="flex justify-center items-center h-[80vh] bg-gray-50">
@@ -232,7 +212,6 @@ const StudentGradesPage = () => {
         );
     }
 
-    // --- BARU: Komponen Tombol Filter ---
     const FilterButton = ({ type, label }: { type: FilterType, label: string }) => {
         const isActive = filterTipe === type;
         return (
@@ -263,10 +242,8 @@ const StudentGradesPage = () => {
                 </div>
             )}
             
-            {/* --- BARU: Kontainer Filter dan Tabel --- */}
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100 mt-6">
                 
-                {/* --- BARU: Tombol Filter --- */}
                 <div className="flex flex-wrap items-center gap-2 mb-4">
                     <ListFilter className="w-5 h-5 text-gray-400" />
                     <FilterButton type="semua" label="Semua" />
@@ -274,7 +251,6 @@ const StudentGradesPage = () => {
                     <FilterButton type="pr" label="Tugas Rumah" />
                 </div>
 
-                {/* --- BARU: Tabel --- */}
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -315,7 +291,6 @@ const StudentGradesPage = () => {
     );
 };
 
-// --- BARU: Komponen Baris Tabel ---
 const GradeTableRow = ({ item }: { item: GradeItem }) => {
     
     const getIcon = () => {
@@ -334,7 +309,6 @@ const GradeTableRow = ({ item }: { item: GradeItem }) => {
 
     return (
         <tr className="hover:bg-gray-50">
-            {/* Tugas */}
             <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
@@ -348,15 +322,12 @@ const GradeTableRow = ({ item }: { item: GradeItem }) => {
                     </div>
                 </div>
             </td>
-            {/* Mata Pelajaran */}
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                 {item.mapelNama}
             </td>
-            {/* Tipe */}
             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                 {item.tipe}
             </td>
-            {/* Status */}
             <td className="px-6 py-4 whitespace-nowrap">
                 {item.status === "Dinilai" ? (
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
@@ -368,7 +339,6 @@ const GradeTableRow = ({ item }: { item: GradeItem }) => {
                     </span>
                 )}
             </td>
-            {/* Skor */}
             <td className="px-6 py-4 whitespace-nowrap">
                 {item.status === "Dinilai" ? (
                     <span className={`text-xl font-bold ${getScoreColor(item.skor)}`}>
@@ -382,7 +352,6 @@ const GradeTableRow = ({ item }: { item: GradeItem }) => {
     );
 };
 
-// --- HAPUS KOMPONEN GradeItemRow LAMA ---
 
 export default StudentGradesPage;
 

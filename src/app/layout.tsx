@@ -18,20 +18,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id"> {/* Ganti lang ke 'id' jika targetnya Indonesia */}
+    <html lang="id"> 
       <body className={inter.className}>
         <Toaster 
-          position="top-left" // Atur posisi (opsional)
+          position="top-left" 
           toastOptions={{
-            duration: 3000, // Durasi 3 detik
+            duration: 3000, 
           }} 
         />
-        {/* --- TAMBAHKAN WRAPPER INI --- */}
         <AuthProvider> 
           {children}
         </AuthProvider>
         <Analytics />
-        {/* --- AKHIR WRAPPER --- */}
       </body>
     </html>
   );

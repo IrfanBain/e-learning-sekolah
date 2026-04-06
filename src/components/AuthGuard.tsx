@@ -2,11 +2,9 @@
 
 import React, { ReactNode } from 'react';
 import { useAuth } from '@/context/authContext';
-import { useRouter, usePathname } from 'next/navigation'; // Import usePathname
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 
-// Definisikan role apa saja yang diizinkan untuk path tertentu
-// Anda bisa membuat ini lebih dinamis nanti
 const allowedRoles: { [key: string]: Array<'admin' | 'teacher' | 'student'> } = {
   '/admin': ['admin'],
   '/teacher': ['teacher'],
@@ -40,7 +38,6 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // 1. Tampilkan loading jika status auth belum siap
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -49,34 +46,27 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
     );
   }
 
-  // 2. Jika tidak loading dan tidak ada user, redirect ke login
   if (!user) {
-    // Redirect ke halaman login, mungkin tambahkan ?redirect=pathname
-    // agar bisa kembali setelah login
-    if (typeof window !== 'undefined') { // Pastikan hanya berjalan di client
+    if (typeof window !== 'undefined') { 
         router.replace(`/login?redirect=${pathname}`);
     }
-    return null; // Jangan render children
+    return null; 
   }
 
-  // 3. Cek Role (jika user sudah login)
-  const baseDashboardPath = pathname.split('/')[1]; // Ambil bagian pertama path (admin, dashboard, student)
-  const requiredPath = `/${baseDashboardPath}`; // Bentuk path dasar (misal /admin)
+  const baseDashboardPath = pathname.split('/')[1]; 
+  const requiredPath = `/${baseDashboardPath}`; 
 
-  // Cari path yang paling cocok di allowedRoles (handle sub-path seperti /list/students)
   let rolesForCurrentPath: Array<'admin' | 'teacher' | 'student'> | undefined;
   for (const pathPrefix in allowedRoles) {
       if (pathname.startsWith(pathPrefix)) {
           rolesForCurrentPath = allowedRoles[pathPrefix];
-          break; // Ambil yang pertama cocok (yang lebih spesifik)
+          break; 
       }
   }
 
 
-  // Jika path tidak terdefinisi di allowedRoles ATAU role user tidak diizinkan
   if (!rolesForCurrentPath || !user.role || !rolesForCurrentPath.includes(user.role)) {
      console.warn(`Akses ditolak: User role '${user.role}' mencoba akses '${pathname}'`);
-     // Tampilkan halaman akses ditolak atau redirect ke dashboard utama user
      const userRole = user.role;
      const homePath = userRole ? dashboardPaths[userRole] : '/';
      return (
@@ -91,6 +81,5 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
   }
 
 
-  // 4. Jika user ada dan role sesuai, tampilkan children (halaman)
   return <>{children}</>;
 }

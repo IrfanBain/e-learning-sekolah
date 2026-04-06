@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
-import { db } from "@/lib/firebaseConfig"; // <-- Sesuaikan path ke firebase Anda
-
-// Tipe data untuk Latihan (sesuaikan jika perlu)
+import { db } from "@/lib/firebaseConfig"; 
 interface Latihan {
   id: string;
-  judul: string; // Ganti 'judul' dengan field Anda
-  tanggal_dibuat_formatted?: string; // Field opsional
+  judul: string; 
+  tanggal_dibuat_formatted?: string; 
 }
 
 const LatihanTerbaru = () => {
@@ -19,11 +17,10 @@ const LatihanTerbaru = () => {
     const fetchLatihan = async () => {
       try {
         const examsCol = collection(db, "exams");
-        // GANTI 'tanggal_dibuat' dengan field timestamp Anda
         const q = query(
           examsCol,
-          orderBy("tanggal_dibuat", "desc"), // 'desc' = terbaru dulu
-          limit(3) // Ambil 3 saja
+          orderBy("tanggal_dibuat", "desc"), 
+          limit(3) 
         );
 
         const snapshot = await getDocs(q);
@@ -52,10 +49,8 @@ const LatihanTerbaru = () => {
     <div className="p-4 bg-white rounded-lg shadow">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-lg font-semibold">Ujian Baru Ditambahkan</h2>
-        {/* <span className="text-sm text-blue-500 cursor-pointer">Lihat Semua</span> */}
       </div>
       
-      {/* Daftar Latihan */}
       <div className="space-y-3">
         {latihan.length > 0 ? (
           latihan.map((item) => (

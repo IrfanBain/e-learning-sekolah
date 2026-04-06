@@ -3,15 +3,13 @@
 import * as admin from 'firebase-admin';
 import { adminAuth, adminDb } from "@/lib/firebaseAdminConfig";
 import { revalidatePath } from "next/cache";
-// Kita asumsikan 'StudentFormData' diimpor dari file 'create' page
-import { StudentFormData } from '@/app/(dashboard)/list/students/create/page'; // (Perbarui path jika perlu)
+import { StudentFormData } from '@/app/(dashboard)/list/students/create/page';
 
 interface ActionResult {
   success: boolean;
   message: string;
 }
 
-// === INTERFACE DIPERBARUI ===
 export interface StudentUpdateFormData {
   uid: string;
   nama_lengkap: string;
@@ -43,10 +41,9 @@ export interface StudentUpdateFormData {
   ortu_ibu_pendidikan: string;
   ortu_ibu_pekerjaan: string;
   ortu_ibu_telepon: string;
-  foto_profil?: string | null; // <-- TAMBAHAN: Foto URL dari Cloudflare R2
+  foto_profil?: string | null; 
 }
 
-// --- FUNGSI CREATE (TIDAK BERUBAH) ---
 export async function createStudentAction(formData: StudentFormData): Promise<ActionResult> {
   
   const { 
@@ -70,7 +67,6 @@ export async function createStudentAction(formData: StudentFormData): Promise<Ac
       throw new Error("NISN harus memiliki minimal 6 karakter untuk dijadikan password.");
     }
 
-    // --- LANGKAH 1: Buat Akun di Firebase Authentication ---
     const userRecord = await adminAuth.createUser({
       email: internalEmail,
       password: initialPassword,
@@ -80,7 +76,6 @@ export async function createStudentAction(formData: StudentFormData): Promise<Ac
     
     uid = userRecord.uid;
 
-    // --- LANGKAH 2: Buat Dokumen di Koleksi 'users' ---
     await adminDb.collection("users").doc(uid).set({
       name: nama_lengkap, 
       email: internalEmail,
@@ -91,7 +86,6 @@ export async function createStudentAction(formData: StudentFormData): Promise<Ac
 
     const classRef = adminDb.collection("classes").doc(kelas);
 
-    // --- LANGKAH 3: Buat Dokumen di Koleksi 'students' ---
     const tanggalLahirTimestamp = tanggal_lahir 
       ? admin.firestore.Timestamp.fromDate(new Date(tanggal_lahir)) 
       : null;
@@ -110,7 +104,7 @@ export async function createStudentAction(formData: StudentFormData): Promise<Ac
       asal_sekolah: asal_sekolah || null,
       nomor_hp: nomor_hp || null,
       status_siswa: status_siswa || "aktif",
-      foto_profil: null, // Default
+      foto_profil: null, 
       kelas_ref: classRef,
       tanggal_masuk: admin.firestore.FieldValue.serverTimestamp(), 
 
@@ -161,41 +155,33 @@ export async function createStudentAction(formData: StudentFormData): Promise<Ac
   }
 }
 
-// --- FUNGSI UPDATE (DIPERBARUI) ---
 export async function updateStudentAction(formData: StudentUpdateFormData): Promise<ActionResult> {
-  
-  // Ambil UID, sisanya adalah data profil
-  // 'foto_profil' sekarang ada di dalam formData
+
   const { uid, ...profileData } = formData;
 
   if (!uid) {
     return { success: false, message: "UID Siswa tidak ditemukan." };
   }
-  // if (!kelas) { return { success: false, message: "Kelas wajib dipilih." }; }
 
   try {
-    // --- LANGKAH 1: Update Firebase Authentication ---
+
     const authUpdatePayload: admin.auth.UpdateRequest = {
       displayName: profileData.nama_lengkap,
     };
     await adminAuth.updateUser(uid, authUpdatePayload);
 
-    // --- LANGKAH 2: Update Dokumen di Koleksi 'users' ---
     await adminDb.collection("users").doc(uid).update({
       name: profileData.nama_lengkap,
     });
 
-    // Buat class reference jika ada kelas yang dipilih
     const classRef = profileData.kelas 
       ? adminDb.collection("classes").doc(profileData.kelas)
       : null;
 
-    // --- LANGKAH 3: Update Dokumen di Koleksi 'students' ---
     const tanggalLahirTimestamp = profileData.tanggal_lahir
       ? admin.firestore.Timestamp.fromDate(new Date(profileData.tanggal_lahir)) 
       : null;
       
-    // Susun ulang data untuk disimpan
     const studentDbPayload = {
       nama_lengkap: profileData.nama_lengkap,
       nisn: profileData.nisn,
@@ -211,10 +197,6 @@ export async function updateStudentAction(formData: StudentUpdateFormData): Prom
       asal_sekolah: profileData.asal_sekolah || null,
       nomor_hp: profileData.nomor_hp || null,
       status_siswa: profileData.status_siswa || "aktif",
-      
-      // === PERUBAHAN DI SINI ===
-      // Hanya update 'foto_profil' jika nilainya dikirim (bukan undefined)
-      // Ini mencegah 'foto_profil: undefined' menimpa 'null' atau URL yang ada
       ...(profileData.foto_profil !== undefined && { foto_profil: profileData.foto_profil }),
       
       alamat: {
@@ -243,11 +225,11 @@ export async function updateStudentAction(formData: StudentUpdateFormData): Prom
       }
     };
     
-    // Gunakan update, bukan set, agar field lain yang tidak diubah (seperti 'tanggal_masuk') tetap ada
+
     await adminDb.collection("students").doc(uid).update(studentDbPayload);
 
     revalidatePath("/list/students"); 
-    revalidatePath(`/list/students/${uid}/edit`); // Revalidate halaman edit juga
+    revalidatePath(`/list/students/${uid}/edit`);
     
     return { success: true, message: `Data ${profileData.nama_lengkap} berhasil diupdate.` };
 
@@ -257,24 +239,19 @@ export async function updateStudentAction(formData: StudentUpdateFormData): Prom
   }
 }
 
-// --- FUNGSI DELETE (TIDAK BERUBAH) ---
 export async function deleteStudentAction(uid: string): Promise<ActionResult> {
   
   try {
-    // 1. Hapus dokumen dari Koleksi 'students'
     await adminDb.collection("students").doc(uid).delete();
-
-    // 2. Hapus dokumen dari Koleksi 'users'
     await adminDb.collection("users").doc(uid).delete();
-    
-    // 3. Hapus akun dari Firebase Authentication
+
     try {
       await adminAuth.deleteUser(uid);
     } catch (authError: any) {
       if (authError.code === 'auth/user-not-found') {
         console.warn(`User ${uid} not found in Auth, but deleted from Firestore.`);
       } else {
-        throw authError; // Lemparkan error lain
+        throw authError;
       }
     }
 

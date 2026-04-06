@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/authContext'; // (Sesuaikan path)
-import { db } from '@/lib/firebaseConfig'; // (Sesuaikan path)
+import { useAuth } from '@/context/authContext'; 
+import { db } from '@/lib/firebaseConfig'; 
 import { type User as AuthUser } from 'firebase/auth';
 import {
     collection,
@@ -22,7 +22,7 @@ import {
     DocumentData,
     where, 
     QueryConstraint,
-    getDocs // <-- Pastikan getDocs diimpor
+    getDocs 
 } from 'firebase/firestore';
 import { 
     FileText,
@@ -44,8 +44,6 @@ import {
     CalendarHeart
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-
-// --- DEFINISI TIPE ---
 
 interface EventDoc {
     id: string;
@@ -76,7 +74,7 @@ type EventFormData = {
     allDay: boolean;
     kategori: "Ujian" | "Libur" | "Acara Sekolah" | "Rapat" | "Lainnya";
     target_audiens: "Semua" | "Guru" | "Siswa";
-    target_kelas_ref: string; // ID atau "semua"
+    target_kelas_ref: string; 
 };
 
 const initialFormData: EventFormData = {
@@ -90,9 +88,7 @@ const initialFormData: EventFormData = {
     target_kelas_ref: "semua",
 };
 
-// --- FUNGSI HELPER (Status Tanggal) ---
 const getRelativeDateStatus = (startDate: Timestamp) => {
-    // ... (Fungsi ini tidak berubah)
     if (!startDate) return { text: "Mendatang", color: "bg-gray-100 text-gray-800" };
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -112,29 +108,19 @@ const getRelativeDateStatus = (startDate: Timestamp) => {
     }
     return { text: "Mendatang", color: "bg-blue-100 text-blue-800" };
 };
-// --- AKHIR HELPER ---
 
-
-// --- KOMPONEN UTAMA ---
-const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
+const EventsPage = () => { 
     const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
-    
-    // State Data
     const [events, setEvents] = useState<EventDoc[]>([]);
     const [availableKelas, setAvailableKelas] = useState<DropdownItem[]>([]);
-    
-    // State UI
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
     const [isEditing, setIsEditing] = useState<EventDoc | null>(null);
-    
-    // --- BARU: State untuk data pengguna (role, nama, kelas) ---
     const [userData, setUserData] = useState<DocumentData | null>(null);
     const [loadingUser, setLoadingUser] = useState(true);
     const [adminName, setAdminName] = useState<string>("Admin");
 
-    // --- 1. Ambil Data Pengguna (Role, Nama, Kelas) ---
     useEffect(() => {
         if (user?.uid && !authLoading) {
             const fetchUserData = async () => {
@@ -143,7 +129,6 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
                 let userProfileData: DocumentData | null = null;
                 
                 try {
-                    // Cek 'users' dulu (untuk Admin)
                     const userDocRef = doc(db, "users", user.uid);
                     const userDocSnap = await getDoc(userDocRef);
                     
@@ -154,14 +139,12 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
                             setAdminName(userProfileData.nama_lengkap || user.displayName || "Admin");
                         }
                     } else {
-                        // Jika tidak ada, cek 'teachers'
                         const teacherDocRef = doc(db, "teachers", user.uid);
                         const teacherDocSnap = await getDoc(teacherDocRef);
                         if (teacherDocSnap.exists()) {
                             userProfileData = teacherDocSnap.data();
-                            userRole = "teacher"; // Asumsi 'role' tidak disimpan di doc 'teachers'
+                            userRole = "teacher";
                         } else {
-                            // Jika tidak ada, cek 'students'
                              const studentDocRef = doc(db, "students", user.uid);
                              const studentDocSnap = await getDoc(studentDocRef);
                              if (studentDocSnap.exists()) {
@@ -173,7 +156,6 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
                         }
                     }
                     
-                    // Simpan data lengkap user (termasuk role, kelas_ref, dll)
                     setUserData({ ...userProfileData, role: userRole });
                     
                 } catch (err: any) {
@@ -191,9 +173,7 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
         }
     }, [user, authLoading]);
 
-    // --- 2. Ambil Data Kelas (untuk dropdown di modal Admin) ---
     useEffect(() => {
-        // Hanya ambil data ini jika pengguna adalah admin (agar tidak boros)
         if (userData?.role === 'admin') {
             const fetchAdminDropdowns = async () => {
                 try {
@@ -210,11 +190,9 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
             };
             fetchAdminDropdowns();
         }
-    }, [userData]); // <-- Jalankan saat userData (termasuk role) siap
+    }, [userData]); 
 
-    // --- 3. Ambil Daftar Acara (Real-time & Difilter) ---
     useEffect(() => {
-        // Jangan jalankan jika data user belum siap
         if (loadingUser || !userData) {
             if (!authLoading && !loadingUser) setLoading(false);
             return;
@@ -223,16 +201,12 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
         setLoading(true);
         const role = userData.role;
         
-        // --- LOGIKA FILTER BARU ---
         const queryConstraints: QueryConstraint[] = [];
 
         if (role === 'admin') {
-            // Admin melihat SEMUA
         } else if (role === 'teacher') {
-            // Guru melihat "Semua" ATAU "Guru"
             queryConstraints.push(where("target_audiens", "in", ["Semua", "Guru"]));
         } else if (role === 'student') {
-            // Siswa melihat "Semua" ATAU "Siswa"
             queryConstraints.push(where("target_audiens", "in", ["Semua", "Siswa"]));
         } else {
              setLoading(false);
@@ -253,18 +227,11 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
                 
                 querySnapshot.forEach((docSnap) => {
                     const eventData = { id: docSnap.id, ...docSnap.data() } as EventDoc;
-                    
-                    // --- CLIENT-SIDE FILTER (UNTUK SISWA) ---
-                    // (Ini menghindari query 'IN' yang rumit di rules)
                     if (role === 'student' && userData.kelas_ref) {
-                        // Jika target_kelas_ref ada, pastikan itu kelas siswa
                         if (eventData.target_kelas_ref && eventData.target_kelas_ref.id !== userData.kelas_ref.id) {
-                            return; // Lewati acara ini, bukan untuk kelas dia
+                            return; 
                         }
                     }
-                    // (Admin & Guru lolos)
-
-                    // Ambil nama kelas jika ada ref
                     const promise = (async () => {
                         if (eventData.target_kelas_ref) {
                             try {
@@ -303,11 +270,8 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
         );
 
         return () => unsubscribe();
-    }, [user, authLoading, loadingUser, userData]); // <-- Dependensi diubah ke userData
-
-    // --- 4. Handler untuk Hapus (Hanya Admin) ---
+    }, [user, authLoading, loadingUser, userData]); 
     const executeDelete = async (docId: string, title: string) => {
-        // ... (fungsi tidak berubah)
         const loadingToastId = toast.loading(`Menghapus "${title}"...`);
         try {
             await deleteDoc(doc(db, "events", docId));
@@ -319,7 +283,6 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
     };
 
     const handleDelete = (docId: string, title: string) => {
-        // ... (fungsi tidak berubah)
         toast((t) => (
             <div className="flex flex-col gap-3 p-2">
                 <div className="flex items-start gap-3">
@@ -352,15 +315,10 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
         ), { duration: 10000 });
     };
 
-
-    // --- TAMPILAN (RENDER) ---
     return (
         <div className="p-4 sm:p-6 bg-gray-50 min-h-screen font-sans">
-            {/* Header Halaman */}
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-800">Kalender & Acara</h1>
-                
-                {/* --- MODIFIKASI: Tombol hanya untuk Admin --- */}
                 {userData?.role === 'admin' && (
                     <button
                         onClick={() => {
@@ -382,9 +340,7 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
                 </div>
             )}
 
-            {/* Daftar Acara */}
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
-                {/* --- MODIFIKASI: Gunakan 'loadingUser' --- */}
                 {loading || loadingUser ? (
                     <div className="flex justify-center items-center h-60">
                         <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
@@ -402,7 +358,6 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
                             <EventItem 
                                 key={item.id} 
                                 item={item}
-                                // --- MODIFIKASI: Kirim role ---
                                 role={userData?.role || null}
                                 onEdit={() => {
                                     setIsEditing(item);
@@ -415,7 +370,6 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
                 )}
             </div>
 
-            {/* Modal Buat/Edit Acara */}
             {showModal && userData?.role === 'admin' && (
                 <EventModal 
                     onClose={() => setShowModal(false)}
@@ -429,8 +383,6 @@ const EventsPage = () => { // <-- Ubah nama komponen agar lebih generik
     );
 };
 
-// --- KOMPONEN ITEM (DAFTAR) ---
-// --- MODIFIKASI: Terima 'role' ---
 const EventItem = ({ item, role, onEdit, onDelete }: { 
     item: EventDoc,
     role: string | null,
@@ -442,7 +394,6 @@ const EventItem = ({ item, role, onEdit, onDelete }: {
     const startDate = item.tanggal_mulai.toDate().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     const endDate = item.tanggal_selesai.toDate().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
     
-    // (getCategoryChip tidak berubah)
     const getCategoryChip = () => {
         switch(item.kategori) {
             case "Ujian":
@@ -489,7 +440,6 @@ const EventItem = ({ item, role, onEdit, onDelete }: {
                 </div>
             </div>
             
-            {/* --- MODIFIKASI: Tombol Aksi (Hanya Admin) --- */}
             {role === 'admin' && (
                 <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-shrink-0">
                     <button
@@ -512,8 +462,6 @@ const EventItem = ({ item, role, onEdit, onDelete }: {
     );
 };
 
-// --- KOMPONEN MODAL (UNTUK BUAT/EDIT) ---
-// (Tidak ada perubahan di sini)
 const EventModal = ({ onClose, existingData, adminUid, adminName, availableKelas }: {
     onClose: () => void;
     existingData: EventDoc | null;
@@ -522,7 +470,6 @@ const EventModal = ({ onClose, existingData, adminUid, adminName, availableKelas
     availableKelas: DropdownItem[];
 }) => {
     
-    // Helper untuk format 'YYYY-MM-DDTHH:mm'
     const toDateTimeLocal = (ts: Timestamp | null) => {
         if (!ts) return "";
         const d = ts.toDate();
@@ -532,7 +479,7 @@ const EventModal = ({ onClose, existingData, adminUid, adminName, availableKelas
     
     const [formData, setFormData] = useState<EventFormData>(
         existingData ? 
-        { // Mode Edit
+        { 
             judul: existingData.judul,
             deskripsi: existingData.deskripsi,
             tanggal_mulai: toDateTimeLocal(existingData.tanggal_mulai),
@@ -542,7 +489,7 @@ const EventModal = ({ onClose, existingData, adminUid, adminName, availableKelas
             target_audiens: existingData.target_audiens,
             target_kelas_ref: existingData.target_kelas_ref?.id || "semua"
         } : 
-        initialFormData // Mode Buat Baru
+        initialFormData 
     );
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -583,12 +530,10 @@ const EventModal = ({ onClose, existingData, adminUid, adminName, availableKelas
             };
 
             if (isEditMode) {
-                // --- MODE EDIT (Update Dokumen) ---
                 const docRef = doc(db, "events", existingData!.id);
                 await updateDoc(docRef, dataToSave);
                 toast.success("Acara berhasil diperbarui!");
             } else {
-                // --- MODE BUAT BARU (Add Dokumen) ---
                 const fullDataToSave = {
                     ...dataToSave,
                     tanggal_dibuat: serverTimestamp(),
@@ -611,7 +556,6 @@ const EventModal = ({ onClose, existingData, adminUid, adminName, availableKelas
     return (
         <div 
             className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4 overflow-y-auto"
-            // onClick={onClose}
         >
             <div 
                 className="bg-white w-full max-w-3xl rounded-xl shadow-lg p-6 z-50 my-auto"
@@ -627,7 +571,6 @@ const EventModal = ({ onClose, existingData, adminUid, adminName, availableKelas
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* (Sisa form tidak berubah) */}
                     <div>
                         <label htmlFor="judul" className="block text-sm font-medium text-gray-700 mb-1">Judul Acara <span className="text-red-500">*</span></label>
                         <input
@@ -746,7 +689,6 @@ const EventModal = ({ onClose, existingData, adminUid, adminName, availableKelas
                     </div>
                 </form>
             </div>
-            {/* Helper style untuk input (agar tidak berulang) */}
             <style jsx global>{`
                 .input-style {
                     display: block;

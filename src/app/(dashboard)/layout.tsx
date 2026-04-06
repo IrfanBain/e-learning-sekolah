@@ -11,7 +11,6 @@ export default function DashboardLayout({
 }>) {
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* LEFT */}
       <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] flex flex-col p-4">
         <Link
           href="/"
@@ -24,7 +23,6 @@ export default function DashboardLayout({
           <Menu />
         </div>
       </div>
-      {/* RIGHT */}
       <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] bg-[#F7F8FA] flex flex-col">
         <Navbar />
         <main className="flex-1 overflow-y-auto min-h-0 p-4 md:p-6">

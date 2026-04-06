@@ -7,17 +7,16 @@ import {
   FiSun, 
   FiMoon, 
   FiSave,
-  FiSliders // Ikon baru untuk Preferensi
+  FiSliders 
 } from 'react-icons/fi';
 import Image from 'next/image';
 
-// 1. Tipe data diperbarui
 interface UserSettings {
   profile: {
     fullName: string;
     bio: string;
   };
-  learningPreferences: { // Bagian baru
+  learningPreferences: { 
     language: 'id' | 'en';
     fontSize: 'small' | 'medium' | 'large';
     highContrast: boolean;
@@ -33,13 +32,12 @@ interface UserSettings {
 }
 
 export default function SettingsPage() {
-  // 2. State diperbarui
   const [settings, setSettings] = useState<UserSettings>({
     profile: {
       fullName: "Irfan Bain", 
       bio: "Admin E-Learning SMP Harapan Jaya",
     },
-    learningPreferences: { // State baru
+    learningPreferences: { 
       language: 'id',
       fontSize: 'medium',
       highContrast: false,
@@ -54,7 +52,6 @@ export default function SettingsPage() {
     },
   });
 
-  // Handler notifikasi (tidak berubah)
   const handleNotificationChange = (key: keyof UserSettings['notifications']) => {
     setSettings(prev => ({
       ...prev,
@@ -65,7 +62,6 @@ export default function SettingsPage() {
     }));
   };
 
-  // Handler profil (tidak berubah)
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setSettings(prev => ({
@@ -77,7 +73,6 @@ export default function SettingsPage() {
     }));
   };
   
-  // Handler tema (tidak berubah)
    const handleThemeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSettings(prev => ({
       ...prev,
@@ -87,14 +82,11 @@ export default function SettingsPage() {
     }));
   };
 
-
-  // --- HANDLER BARU ---
-  // Handler untuk preferensi pembelajaran
   const handlePreferenceChange = (
     e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>, 
     key: keyof UserSettings['learningPreferences']
   ) => {
-    const { value, type, checked } = e.target as HTMLInputElement; // Type assertion
+    const { value, type, checked } = e.target as HTMLInputElement; 
     const newValue = type === 'checkbox' ? checked : value;
 
     setSettings(prev => ({
@@ -105,7 +97,6 @@ export default function SettingsPage() {
       }
     }));
   };
-  // --- AKHIR HANDLER BARU ---
 
   const handleSaveChanges = () => {
     console.log("Saving settings:", settings);
@@ -116,12 +107,10 @@ export default function SettingsPage() {
     <div className="p-4 md:p-8 space-y-8">
       <h2 className="text-2xl font-semibold mb-5">Pengaturan</h2>
 
-      {/* --- KARTU PROFIL (Tidak berubah) --- */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <FiUser /> Profil Publik
         </h3>
-        {/* ... (Isi Kartu Profil sama seperti sebelumnya) ... */}
          <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
@@ -138,7 +127,6 @@ export default function SettingsPage() {
             <textarea 
               name="bio"
               value={settings.profile.bio}
-              // onChange={handleProfileChange} // Pastikan handler ini ada
               rows={3}
               className="w-full p-2 border rounded-lg bg-gray-50"
             />
@@ -146,13 +134,11 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* --- KARTU PREFERENSI PEMBELAJARAN (BARU) --- */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <FiSliders /> Preferensi Pembelajaran
         </h3>
         <div className="space-y-4">
-          {/* Bahasa */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Bahasa Tampilan</label>
             <select 
@@ -164,7 +150,6 @@ export default function SettingsPage() {
               <option value="en">English</option>
             </select>
           </div>
-          {/* Ukuran Font */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Ukuran Font</label>
             <div className="flex gap-4">
@@ -183,7 +168,6 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
-          {/* Kontras Tinggi */}
           <div className="flex items-center justify-between">
             <label className="text-sm text-gray-800">Mode Kontras Tinggi (Aksesibilitas)</label>
             <button 
@@ -199,14 +183,10 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-      {/* --- AKHIR KARTU PREFERENSI --- */}
-
-      {/* --- KARTU NOTIFIKASI (Tidak berubah) --- */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           <FiBell /> Notifikasi Email
         </h3>
-         {/* ... (Isi Kartu Notifikasi sama seperti sebelumnya) ... */}
          <div className="space-y-3">
           <div className="flex items-center justify-between">
             <label className="text-sm text-gray-800">Saat ada tugas baru</label>
@@ -221,7 +201,6 @@ export default function SettingsPage() {
               }`}></span>
             </button>
           </div>
-          {/* ... (toggle notifikasi lainnya) ... */}
            <div className="flex items-center justify-between">
             <label className="text-sm text-gray-800">Saat nilai baru keluar</label>
              <button 
@@ -251,12 +230,10 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* --- KARTU TAMPILAN (Tidak berubah) --- */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
           {settings.appearance.theme === 'dark' ? <FiMoon /> : <FiSun />} Tampilan
         </h3>
-         {/* ... (Isi Kartu Tampilan sama seperti sebelumnya) ... */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Tema</label>
           <select 
@@ -271,7 +248,6 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Tombol Simpan (Tidak berubah) */}
       <div className="flex justify-end mt-6">
         <button
           onClick={handleSaveChanges}

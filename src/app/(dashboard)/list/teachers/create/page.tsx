@@ -3,31 +3,29 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-// Impor interface dan action yang baru kita buat
-import { TeacherFormData, createTeacherAction } from '@/app/actions/teacherActions'; // Pastikan path ini benar
-import { FiArrowLeft } from 'react-icons/fi'; // Ikon untuk tombol kembali
+import { TeacherFormData, createTeacherAction } from '@/app/actions/teacherActions';
+import { FiArrowLeft } from 'react-icons/fi';
 
-// Nilai Awal untuk reset form (sesuai data Anda)
 const initialState: TeacherFormData = {
   nama_lengkap: '',
   nip_nuptk: '',
-  email: '', // Kosongkan default email
+  email: '', 
   jenis_kelamin: 'L',
   tempat_lahir: '',
   tanggal_lahir: '',
   agama: 'Islam',
   nomor_hp: '',
-  status_kepegawaian: 'pns', // Default PNS
-  pendidikan_terakhir: 's1', // Default S1
+  status_kepegawaian: 'pns',
+  pendidikan_terakhir: 's1', 
   almamater: '',
   jurusan_pendidikan: '',
   tanggal_mulai_kerja: '',
-  mata_pelajaran_diampu: '', // Akan diisi sebagai string dipisah koma
-  peran: 'Guru', // Default 'guru', dipisah koma jika > 1
+  mata_pelajaran_diampu: '', 
+  peran: 'Guru', 
   wali_kelas_ref: '',
   alamat_jalan: '',
   alamat_rt_rw: '',
-  alamat_kelurahan_desa: '', // Kosongkan default alamat
+  alamat_kelurahan_desa: '', 
   alamat_kecamatan: '',
   alamat_kota_kabupaten: '',
   alamat_provinsi: '',
@@ -53,7 +51,6 @@ export default function CreateTeacherPage() {
       toast.error("Nama Lengkap dan NIP/NUPTK wajib diisi.");
       return;
     }
-     // Validasi password minimal 6 karakter
      if (formData.nip_nuptk.length < 6) {
         setError("NIP/NUPTK harus minimal 6 karakter untuk dijadikan password awal.");
         toast.error("NIP/NUPTK harus minimal 6 karakter.");
@@ -64,31 +61,27 @@ export default function CreateTeacherPage() {
     setLoading(true);
     setError(null);
 
-    // Panggil server action
     const result = await createTeacherAction(formData);
 
     setLoading(false);
 
     if (result.success) {
       toast.success(result.message);
-      // Arahkan kembali ke halaman daftar guru (pastikan path ini benar)
       router.push('/list/teachers');
-      router.refresh(); // Refresh data di halaman daftar
+      router.refresh(); 
     } else {
       setError(result.message);
-      toast.error(`Gagal: ${result.message}`); // Tampilkan error toast
+      toast.error(`Gagal: ${result.message}`); 
     }
   };
 
-  // Navigasi Batal
   const handleBatal = () => {
     if (loading) return;
-    router.push('/list/teachers'); // (Pastikan path ini benar)
+    router.push('/list/teachers'); 
   };
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      {/* Tombol Kembali */}
        <button
         onClick={handleBatal}
         disabled={loading}
@@ -99,28 +92,24 @@ export default function CreateTeacherPage() {
 
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-auto border border-gray-200">
 
-        {/* Header Form */}
         <div className="border-b p-4 md:p-6">
           <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
             Tambah Guru Baru
           </h1>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-6">
 
           {error && (
             <div className="p-3 bg-red-100 text-red-700 rounded-md border border-red-200">{error}</div>
           )}
 
-          {/* --- BAGIAN AKUN & PROFIL --- */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2 text-gray-700">Informasi Akun & Profil</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input name="nama_lengkap" label="Nama Lengkap (Wajib)" value={formData.nama_lengkap} onChange={handleChange} required />
               <Input name="nip_nuptk" label="NIP / NUPTK (Wajib, min. 6 char)" value={formData.nip_nuptk} onChange={handleChange} required />
             </div>
-             {/* Penanda Login */}
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 bg-gray-50 p-3 rounded-md border border-gray-200">
                 <div>
                     <label className="block text-xs font-medium text-gray-600">Username (Otomatis dari NIP/NUPTK)</label>
@@ -143,7 +132,6 @@ export default function CreateTeacherPage() {
             </div>
           </div>
 
-          {/* --- BAGIAN PROFESIONAL/MENGAJAR --- */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-4">
             <h3 className="text-lg font-semibold border-b pb-2 text-gray-700">Data Profesional & Mengajar</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -154,22 +142,17 @@ export default function CreateTeacherPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Input name="jurusan_pendidikan" label="Jurusan Pendidikan" value={formData.jurusan_pendidikan} onChange={handleChange} />
               <Input name="tanggal_mulai_kerja" label="Tgl. Mulai Kerja" value={formData.tanggal_mulai_kerja} onChange={handleChange} type="date" />
-              {/* <Input name="wali_kelas_ref" label="ID Wali Kelas (Opsional)" value={formData.wali_kelas_ref} onChange={handleChange} placeholder="Kosongkan jika bukan wali kelas"/> */}
             </div>
-            {/* Input untuk Array (dipisah koma) */}
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               <div>
                 <Input name="mata_pelajaran_diampu" label="Mata Pelajaran (Dipisah Koma)" value={formData.mata_pelajaran_diampu} onChange={handleChange} placeholder="Contoh: Mtk, Fisika, B.Indo" />
-                {/* <p className="text-xs text-gray-500 mt-1">Contoh: mtk, fisika, bahasa indonesia</p> */}
               </div>
               <div>
                 <Input name="peran" label="Peran (Dipisah Koma)" value={formData.peran} onChange={handleChange} placeholder="Minimal 'Guru'. Contoh: Guru, Staf TU" required />
-                {/* <p className="text-xs text-gray-500 mt-1">Contoh: guru, staf tu, admin</p> */}
               </div>
              </div>
           </div>
 
-          {/* --- BAGIAN ALAMAT --- */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2 text-gray-700">Alamat Guru</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -183,7 +166,6 @@ export default function CreateTeacherPage() {
               </div>
           </div>
 
-          {/* Tombol Aksi */}
           <div className="flex justify-end gap-4 pt-6 border-t mt-6">
             <button type="button" onClick={handleBatal} disabled={loading}
               className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors">
@@ -200,8 +182,6 @@ export default function CreateTeacherPage() {
   );
 }
 
-// --- Komponen Helper (Input & Select) ---
-// (Disalin dari file lain agar komponen ini mandiri)
 type InputProps = {
   label: string;
   name: string;

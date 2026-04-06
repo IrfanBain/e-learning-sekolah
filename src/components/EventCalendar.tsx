@@ -30,7 +30,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// --- Tipe Data (dari 'events/page.tsx') ---
 interface EventDoc {
     id: string;
     judul: string;
@@ -43,9 +42,7 @@ interface EventDoc {
     target_kelas_ref: DocumentReference | null;
 }
 
-// --- FUNGSI HELPER ---
 const getRelativeDateStatus = (startDate: Timestamp) => {
-    // ... (Fungsi ini tidak berubah)
     if (!startDate) return { text: "Mendatang", color: "text-gray-500" };
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -66,7 +63,6 @@ const getRelativeDateStatus = (startDate: Timestamp) => {
 };
 
 const getCategoryStyle = (kategori: EventDoc['kategori']) => {
-    // ... (Fungsi ini tidak berubah)
     switch(kategori) {
         case "Ujian":
             return { color: "border-l-red-500", icon: <FileText className="w-5 h-5 text-red-500" /> };
@@ -81,7 +77,6 @@ const getCategoryStyle = (kategori: EventDoc['kategori']) => {
 };
 
 
-// --- KOMPONEN UTAMA ---
 const EventListWidget = () => {
   const { user, loading: authLoading } = useAuth() as { user: AuthUser | null, loading: boolean };
   const [events, setEvents] = useState<EventDoc[]>([]);
@@ -89,7 +84,6 @@ const EventListWidget = () => {
   const [userData, setUserData] = useState<DocumentData | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
 
-  // (Semua logika fetching data tetap sama)
   useEffect(() => {
     if (user?.uid && !authLoading) {
       const fetchUserData = async () => {
@@ -148,7 +142,6 @@ const EventListWidget = () => {
     const queryConstraints: QueryConstraint[] = [];
 
     if (role === 'admin') {
-        // Admin melihat SEMUA
     } else if (role === 'teacher') {
         queryConstraints.push(where("target_audiens", "in", ["Semua", "Guru"]));
     } else if (role === 'student') {
@@ -195,7 +188,7 @@ const EventListWidget = () => {
     );
 
     return () => unsubscribe();
-  }, [user, loadingUser, userData]);
+  }, [user, loadingUser, userData, authLoading]);
 
   return (
     <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
