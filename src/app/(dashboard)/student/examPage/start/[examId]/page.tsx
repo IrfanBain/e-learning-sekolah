@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import Image from 'next/image';
 
 type PageStatus = "loading" | "ready" | "inProgress" | "submitting" | "alreadyTaken" | "deadlinePassed" | "error";
 
@@ -55,7 +56,7 @@ interface ExamData {
     tanggal_selesai: Timestamp;
     durasi_menit: number;
     status: "Dipublikasi" | "Ditutup" | "Draft";
-    jumlah_soal: number;
+    jumlah_soal: number;    
 }
 
 interface SoalData {
@@ -67,6 +68,7 @@ interface SoalData {
     opsi?: { [key: string]: string }; 
     kunci_jawaban?: string; 
     jumlah_input?: number;
+    gambar_url?: string | null;
 }
 
 const TimerDisplay = React.memo(({ initialSeconds, onTimeUp }: { initialSeconds: number, onTimeUp: () => void }) => {
@@ -590,6 +592,18 @@ setAnswers(newAnswers);
                 <p className="text-base text-gray-800 my-5 whitespace-pre-wrap leading-relaxed">
                     {soal.pertanyaan}
                 </p>
+                {soal.gambar_url && (
+                    <div className="mb-6 flex justify-center">
+                        <Image
+                            width={500}
+                            height={300} 
+                            src={soal.gambar_url} 
+                            alt={`Gambar untuk soal nomor ${currentQuestionIndex + 1}`} 
+                            className="max-h-80 w-auto rounded-lg shadow-sm border border-gray-200"
+                            loading="lazy"
+                        />
+                    </div>
+                )}
 
                 <div className="space-y-3">
                     {soal.tipe_soal === "Pilihan Ganda" && soal.opsi && (

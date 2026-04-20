@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
+import Image from 'next/image';
 
 interface ExamData {
     judul: string;
@@ -44,6 +45,7 @@ interface SoalData {
     kunci_jawaban?: string;
     rubrik_penilaian?: string;
     jumlah_input?: number;
+    gambar_url?: string | null;
 }
 
 interface SubmissionData {
@@ -360,6 +362,18 @@ const ExamStudentResultPage = () => {
                                 )}
                             </div>
                             <p className="text-gray-800 font-medium my-4 whitespace-pre-wrap">{soal.pertanyaan}</p>
+                            {soal.gambar_url && (
+                                <div className="mb-5 flex justify-start sm:justify-center">
+                                    <Image
+                                    width={500}
+                                        height={300} 
+                                        src={soal.gambar_url} 
+                                        alt={`Gambar untuk soal nomor ${soal.urutan}`} 
+                                        className="max-h-64 w-auto rounded-lg shadow-sm border border-gray-200"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            )}
                             {soal.tipe_soal === 'Pilihan Ganda' && (
                                 <RenderPilihanGanda 
                                     soal={soal} 

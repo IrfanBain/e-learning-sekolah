@@ -43,6 +43,7 @@ import {
     RotateCcw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Image from 'next/image';
 
 interface ExamData {
     id: string;
@@ -64,7 +65,8 @@ interface SoalData {
     opsi?: { [key: string]: string }; 
     kunci_jawaban?: string; 
     rubrik_penilaian?: string;
-    jumlah_input?: number; 
+    jumlah_input?: number;
+    gambar_url?: string | null; 
 }
 
 type SoalFormData = {
@@ -77,6 +79,7 @@ type SoalFormData = {
     kunci_jawaban: "A" | "B" | "C" | "D";
     rubrik_penilaian: string;
     jumlah_input?: number;
+    gambar_url?: string | null;
 }
 
 const initialFormData: SoalFormData = {
@@ -89,6 +92,7 @@ const initialFormData: SoalFormData = {
     kunci_jawaban: "A",
     rubrik_penilaian: "",
     jumlah_input: 3,
+    gambar_url: null
 };
 
 /**
@@ -130,6 +134,8 @@ const TeacherExamManagePage = () => {
     const [editingSoal, setEditingSoal] = useState<SoalData | null>(null);
     const formRef = useRef<HTMLDivElement>(null);
     const [activeTab, setActiveTab] = useState<"Pilihan Ganda" | "Esai" | "Esai Uraian">("Pilihan Ganda");
+    const [gambarFile, setGambarFile] = useState<File | null>(null);
+    const [gambarPreview, setGambarPreview] = useState<string | null>(null);
 
     const examDocRef = useMemo(() => doc(db, "exams", examId), [examId]);
 
@@ -214,6 +220,61 @@ const TeacherExamManagePage = () => {
         }));
     };
 
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            // Validasi ukuran (contoh maksimal 2MB)
+            const maxSizeInMB = 5;
+            const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
+            if (file.size > maxSizeInBytes) {
+                toast.error(`Ukuran gambar terlalu besar! Maksimal ${maxSizeInMB}MB.`);
+                return;
+            }
+            setGambarFile(file);
+            setGambarPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const uploadImageToR2 = async (file: File): Promise<string> => {
+        // Langkah 1: Minta Presigned URL dari API Route kamu
+        const fileExtension = file.name.split('.').pop() || 'jpg';
+        const res = await fetch("/api/upload-url", { // Sesuaikan nama endpoint
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                contentType: file.type,
+                fileExtension: fileExtension,
+                prefix: "exam_questions", // Sesuai dengan yang kita tambah di route.ts
+                fileName: file.name
+            }),
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || "Gagal mendapatkan izin upload dari server.");
+        }
+        
+        const data = await res.json();
+        
+        // Langkah 2: Upload file fisik ke URL yang diberikan (uploadUrl) menggunakan metode PUT
+        const uploadRes = await fetch(data.uploadUrl, {
+            method: "PUT",
+            body: file,
+            headers: {
+                "Content-Type": file.type,
+            },
+        });
+
+        if (!uploadRes.ok) {
+            throw new Error("Gagal mengunggah gambar ke R2 Cloudflare.");
+        }
+
+        // Langkah 3: Kembalikan fileUrl (URL Publik) untuk disimpan ke Firestore
+        return data.fileUrl; 
+    };
+
     const handleAddSoal = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!examData) return;
@@ -262,6 +323,14 @@ const TeacherExamManagePage = () => {
         }
 
         try {
+            let uploadedImageUrl = null;
+            if (gambarFile) {
+                const loadingImageToast = toast.loading("Mengunggah gambar...");
+                uploadedImageUrl = await uploadImageToR2(gambarFile);
+                toast.dismiss(loadingImageToast);
+            }
+            newSoalData.gambar_url = uploadedImageUrl;
+
             const soalCollectionRef = collection(db, "exams", examId, "soal");
             await addDoc(soalCollectionRef, newSoalData);
             
@@ -270,7 +339,9 @@ const TeacherExamManagePage = () => {
             });
             
             toast.success(`Soal nomor ${nextUrutan} berhasil ditambahkan!`);
-            setFormData(initialFormData); 
+            setFormData(initialFormData);
+            setGambarFile(null);
+            setGambarPreview(null); 
             fetchSoalList(); 
             fetchExamData(); 
 
@@ -336,6 +407,15 @@ const TeacherExamManagePage = () => {
             }
 
             try {
+                if (gambarFile) {
+                const loadingImageToast = toast.loading("Mengunggah gambar baru...");
+                updatedSoalData.gambar_url = await uploadImageToR2(gambarFile);
+                toast.dismiss(loadingImageToast);
+            } else {
+                // Pertahankan gambar lama jika tidak ada file baru yang dipilih
+                updatedSoalData.gambar_url = formData.gambar_url; 
+            }
+
                 const soalDocRef = doc(db, "exams", examId, "soal", editingSoal.id);
                 await updateDoc(soalDocRef, updatedSoalData);
 
@@ -354,6 +434,8 @@ const TeacherExamManagePage = () => {
  const handleCancelEdit = () => {
 setEditingSoal(null);
 setFormData(initialFormData); 
+setGambarFile(null);
+setGambarPreview(null);
 };
 
 const handleStartEdit = (soal: SoalData) => {
@@ -374,7 +456,8 @@ opsiB: soal.opsi['B'] || "",
 opsiC: soal.opsi['C'] || "",
 opsiD: soal.opsi['D'] || "",
 kunci_jawaban: (soal.kunci_jawaban as "A" | "B" | "C" | "D") || "A",
- rubrik_penilaian: "", 
+ rubrik_penilaian: "",
+ gambar_url: soal.gambar_url || null 
  });
  } else if (soal.tipe_soal === 'Esai') {
  setFormData({
@@ -383,7 +466,8 @@ poin: soal.poin,
 opsiA: "", opsiB: "", opsiC: "", opsiD: "",
 kunci_jawaban: "A",
 rubrik_penilaian: soal.rubrik_penilaian || "",
-jumlah_input: 1, 
+jumlah_input: 1,
+gambar_url: soal.gambar_url || null 
  });
 } else if (soal.tipe_soal === 'Esai Uraian') {
 setFormData({
@@ -393,6 +477,7 @@ poin: soal.poin,
  kunci_jawaban: "A",
  rubrik_penilaian: soal.rubrik_penilaian || "",
 jumlah_input: soal.jumlah_input || 1, 
+gambar_url: soal.gambar_url || null
 });
 }
 
@@ -786,6 +871,48 @@ const batch = writeBatch(db);
                                     disabled={examData.status !== 'Draft'} 
                                 />
                             </div>
+                            {/* --- TAMBAHAN INPUT GAMBAR --- */}
+                            <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <label className="block text-sm font-medium text-gray-700">Gambar Soal (Opsional)</label>
+                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                        Maks 5MB
+                                    </span>
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    disabled={examData.status !== 'Draft'}
+                                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                                />
+                                {/* Preview Gambar */}
+                                {(gambarPreview || formData.gambar_url) && (
+                                    <div className="mt-2 relative inline-block">
+                                        <Image 
+                                        width={500}
+                                        height={300}
+                                            src={gambarPreview || formData.gambar_url || ""} 
+                                            alt="Preview" 
+                                            className="max-h-40 rounded-md border border-gray-300 shadow-sm"
+                                        />
+                                        {examData.status === 'Draft' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setGambarFile(null);
+                                                    setGambarPreview(null);
+                                                    setFormData(prev => ({ ...prev, gambar_url: null }));
+                                                }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            {/* ----------------------------- */}
                             
                             <div>
                                 <label htmlFor="poin" className="block text-sm font-medium text-gray-700 mb-1">Poin Soal <span className="text-red-500">*</span></label>
@@ -1227,6 +1354,15 @@ const SoalListItem = ({ soal, onDelete, onEdit, isDisabled }: {
 
             <div className="pt-3">
                 <p className="text-gray-800 font-medium mb-3 whitespace-pre-wrap">{soal.pertanyaan}</p>
+                {soal.gambar_url && (
+                    <div className="mb-4">
+                        <img 
+                            src={soal.gambar_url} 
+                            alt="Gambar Soal" 
+                            className="max-h-48 rounded border border-gray-200"
+                        />
+                    </div>
+                )}
                 
                 {soal.tipe_soal === 'Pilihan Ganda' && soal.opsi && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">

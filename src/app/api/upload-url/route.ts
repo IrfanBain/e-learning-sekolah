@@ -16,7 +16,7 @@ export async function POST(request: Request) {
  try {
 
     const { contentType, fileExtension, prefix, fileName } = await request.json();
-    const allowedPrefixes = ["user_photo", "homework_attachments", "homework_submissions"];
+    const allowedPrefixes = ["user_photo", "homework_attachments", "homework_submissions", "exam_questions"];
     if (!prefix || !allowedPrefixes.includes(prefix)) {
         return NextResponse.json({ error: "Invalid upload folder." }, { status: 400 });
     }

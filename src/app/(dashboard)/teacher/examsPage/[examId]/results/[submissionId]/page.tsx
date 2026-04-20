@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
+import Image from 'next/image';
 
 interface ExamData {
     judul: string;
@@ -45,6 +46,7 @@ interface SoalData {
     kunci_jawaban?: string;
     rubrik_penilaian?: string;
     jumlah_input?: number;
+    gambar_url?: string | null;
 }
 
 interface SubmissionData {
@@ -478,6 +480,18 @@ const StudentResultPage = () => {
                             <p className="text-sm font-medium text-gray-500 mb-2">Tipe: {soal.tipe_soal} | Poin Maksimal: {soal.poin}</p>
                             <div className="p-3 bg-gray-50 rounded-md">
                                 <p className="whitespace-pre-wrap text-gray-900">{soal.pertanyaan}</p>
+                                {soal.gambar_url && (
+                                    <div className="mt-4 mb-2 flex justify-start sm:justify-center">
+                                        <Image
+                                        width={500}
+                                        height={300}
+                                            src={soal.gambar_url} 
+                                            alt={`Gambar soal nomor ${soal.urutan}`} 
+                                            className="max-h-64 w-auto rounded-lg shadow-sm border border-gray-300"
+                                            loading="lazy"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
 
